@@ -14,6 +14,7 @@ import {
   Sun,
   X,
 } from "lucide-react";
+import { logoutAction } from "@/features/auth/actions/auth.actions";
 import { ArticlesAdminList } from "@/features/articles/components/articles-admin-list";
 
 type AdminSectionId = "articles" | "analytics" | "profile";
@@ -50,7 +51,7 @@ const sections: AdminSection[] = [
   },
 ];
 
-export function AdminShell() {
+export function AdminShell({ userEmail }: { userEmail: string }) {
   const [activeSectionId, setActiveSectionId] =
     useState<AdminSectionId>("articles");
   const [themeMode, setThemeMode] = useState<ThemeMode>("dark");
@@ -65,6 +66,7 @@ export function AdminShell() {
       sections[0],
     [activeSectionId],
   );
+  const userLabel = userEmail.split("@")[0] || "Admin";
 
   useEffect(() => {
     setIsMounted(true);
@@ -188,16 +190,18 @@ export function AdminShell() {
             <span>{themeMode === "dark" ? "Mode clair" : "Mode sombre"}</span>
           </button>
 
-          <button
-            type="button"
-            className="flex h-12 cursor-pointer items-center gap-4 rounded-md px-4 text-sm font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-300 dark:hover:bg-[#18191b] dark:hover:text-white"
-          >
-            <LogOut
-              className="h-5 w-5 shrink-0 text-stone-700 dark:text-[#ff6b16]"
-              aria-hidden="true"
-            />
-            <span>Logout</span>
-          </button>
+          <form action={logoutAction}>
+            <button
+              type="submit"
+              className="flex h-12 w-full cursor-pointer items-center gap-4 rounded-md px-4 text-sm font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-300 dark:hover:bg-[#18191b] dark:hover:text-white"
+            >
+              <LogOut
+                className="h-5 w-5 shrink-0 text-stone-700 dark:text-[#ff6b16]"
+                aria-hidden="true"
+              />
+              <span>Logout</span>
+            </button>
+          </form>
         </div>
       </aside>
     </div>
@@ -246,11 +250,11 @@ export function AdminShell() {
             <p className="truncate text-xl font-normal text-stone-800 dark:text-stone-100">
               Hello{" "}
               <span className="font-bold text-[#f44336] dark:text-[#ff8a3d]">
-                Admin
+                {userLabel}
               </span>
             </p>
             <p className="mt-1 truncate text-xs text-stone-500 dark:text-stone-300">
-              Welcome to your dashboard
+              {userEmail}
             </p>
           </div>
 
@@ -406,27 +410,29 @@ export function AdminShell() {
               </span>
             </button>
 
-            <button
-              type="button"
-              className={[
-                "mt-2 flex h-12 cursor-pointer items-center gap-4 rounded-md text-sm font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-300 dark:hover:bg-[#18191b] dark:hover:text-white",
-                "w-full overflow-hidden px-4",
-              ].join(" ")}
-              title="Logout"
-            >
-              <LogOut
-                  className="h-5 w-5 shrink-0 text-stone-700 dark:text-[#ff8a3d]"
-                aria-hidden="true"
-              />
-              <span
+            <form action={logoutAction}>
+              <button
+                type="submit"
                 className={[
-                  "whitespace-nowrap transition-opacity duration-150 ease-out",
-                  areSidebarLabelsVisible ? "opacity-100" : "opacity-0",
+                  "mt-2 flex h-12 cursor-pointer items-center gap-4 rounded-md text-sm font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-300 dark:hover:bg-[#18191b] dark:hover:text-white",
+                  "w-full overflow-hidden px-4",
                 ].join(" ")}
+                title="Logout"
               >
-                Logout
-              </span>
-            </button>
+                <LogOut
+                  className="h-5 w-5 shrink-0 text-stone-700 dark:text-[#ff8a3d]"
+                  aria-hidden="true"
+                />
+                <span
+                  className={[
+                    "whitespace-nowrap transition-opacity duration-150 ease-out",
+                    areSidebarLabelsVisible ? "opacity-100" : "opacity-0",
+                  ].join(" ")}
+                >
+                  Logout
+                </span>
+              </button>
+            </form>
           </div>
         </aside>
 

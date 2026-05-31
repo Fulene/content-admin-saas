@@ -5,15 +5,11 @@
 
 create extension if not exists "pgcrypto";
 
--- =====================================================
--- ARTICLES
--- =====================================================
-
 create table if not exists public.articles (
                                                id uuid primary key default gen_random_uuid(),
 
                                                title text not null,
-                                               slug text not null,
+                                               slug text not null unique,
 
                                                summary text not null,
                                                content text not null,
@@ -37,10 +33,6 @@ create table if not exists public.articles (
                                                updated_at timestamptz not null default now()
 );
 
--- =====================================================
--- CONSTRAINTS
--- =====================================================
-
 alter table public.articles
     drop constraint if exists articles_status_check;
 
@@ -50,10 +42,6 @@ alter table public.articles
 
 create unique index if not exists articles_slug_unique_idx
     on public.articles (slug);
-
--- =====================================================
--- UPDATED_AT TRIGGER
--- =====================================================
 
 create or replace function public.set_updated_at()
     returns trigger as $$
@@ -71,34 +59,14 @@ create trigger set_articles_updated_at
     for each row
 execute function public.set_updated_at();
 
--- =====================================================
--- RLS
--- =====================================================
-
 alter table public.articles
     enable row level security;
 
--- =====================================================
--- POLICIES
--- =====================================================
-
-drop policy if exists "Public can read published articles"
-    on public.articles;
-
-drop policy if exists "Authenticated users can read all articles"
-    on public.articles;
-
-drop policy if exists "Authenticated users can insert articles"
-    on public.articles;
-
-drop policy if exists "Authenticated users can update articles"
-    on public.articles;
-
-drop policy if exists "Authenticated users can delete articles"
-    on public.articles;
-
--- Public :
--- uniquement les articles publiés
+drop policy if exists "Public can read published articles" on public.articles;
+drop policy if exists "Authenticated users can read all articles" on public.articles;
+drop policy if exists "Authenticated users can insert articles" on public.articles;
+drop policy if exists "Authenticated users can update articles" on public.articles;
+drop policy if exists "Authenticated users can delete articles" on public.articles;
 
 create policy "Public can read published articles"
     on public.articles
@@ -107,39 +75,37 @@ create policy "Public can read published articles"
     status = 'published'
     );
 
--- Admin :
--- lecture complète
-
 create policy "Authenticated users can read all articles"
     on public.articles
     for select
     to authenticated
-    using (true);
-
--- Admin :
--- création
+    using (
+    true
+    );
 
 create policy "Authenticated users can insert articles"
     on public.articles
     for insert
     to authenticated
-    with check (true);
-
--- Admin :
--- modification
+    with check (
+    true
+    );
 
 create policy "Authenticated users can update articles"
     on public.articles
     for update
     to authenticated
-    using (true)
-    with check (true);
-
--- Admin :
--- suppression
+    using (
+    true
+    )
+    with check (
+    true
+    );
 
 create policy "Authenticated users can delete articles"
     on public.articles
     for delete
     to authenticated
-    using (true);
+    using (
+    true
+    );
