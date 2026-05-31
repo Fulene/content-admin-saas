@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+
 export default function Home() {
-  return <main>Blog Admin Kit</main>;
+  redirect("/admin");
 }

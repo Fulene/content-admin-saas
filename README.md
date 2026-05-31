@@ -28,8 +28,12 @@ Créer un fichier `.env.local` à partir de `.env.example`.
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 ```
+
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` est une clé publique utilisable côté client. La sécurité Supabase doit reposer sur Row Level Security (RLS) et les policies associées.
+
+Ne jamais exposer ni commiter `SUPABASE_SERVICE_ROLE_KEY`.
 
 ## Architecture
 

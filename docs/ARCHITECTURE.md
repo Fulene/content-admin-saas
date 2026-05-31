@@ -48,6 +48,8 @@ src/
 
 `lib/` regroupe les dépendances techniques partagées. Les clients Supabase et la validation des variables d'environnement y sont centralisés pour éviter la duplication.
 
+Les variables Supabase publiques attendues sont `NEXT_PUBLIC_SUPABASE_URL` et `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. La publishable key est exposable côté client; la sécurité doit être portée par RLS et les policies Supabase. Ne jamais exposer `SUPABASE_SERVICE_ROLE_KEY`.
+
 ## Stratégie de réutilisation
 
 Le kit doit rester modulaire. Les landing pages consommatrices pourront intégrer les dossiers utiles sans dépendre d'un backoffice complet imposé. Les futures fonctionnalités seront ajoutées dans `features/`, tandis que `app/` restera spécifique aux routes exposées par chaque projet hôte.

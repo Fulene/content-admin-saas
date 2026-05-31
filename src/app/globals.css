@@ -16,8 +16,10 @@
   }
 
   body {
+    height: 100%;
     min-height: 100vh;
     margin: 0;
+    overflow: hidden;
     background: #f8fafc;
     color: #0f172a;
   }
@@ -33,4 +35,5 @@
   select {
     font: inherit;
   }
+
 }

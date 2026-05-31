@@ -13,6 +13,7 @@ import {
   Sun,
   X,
 } from "lucide-react";
+import { ArticlesAdminList } from "@/features/articles/components/articles-admin-list";
 
 type AdminSectionId = "articles" | "analytics" | "profile";
 type ThemeMode = "light" | "dark";
@@ -88,8 +89,8 @@ export function AdminShell() {
   }
 
   return (
-    <main className="min-h-screen bg-white text-stone-950 dark:bg-[#090b0b] dark:text-stone-50">
-      <div className="flex min-h-screen flex-col bg-white dark:bg-[#141517]">
+    <main className="h-screen overflow-hidden bg-white text-stone-950 dark:bg-[#090b0b] dark:text-stone-50">
+      <div className="flex h-full flex-col bg-white dark:bg-[#141517]">
         <header className="flex h-18 shrink-0 items-center justify-between bg-white px-5 dark:bg-[#141517] lg:h-20 lg:px-8">
           <div className="flex min-w-0 items-center gap-24">
             <div className="min-w-0">
@@ -296,7 +297,7 @@ export function AdminShell() {
           </aside>
         </div>
 
-        <div className="flex min-h-0 flex-1 bg-white dark:bg-[#141517]">
+        <div className="flex min-h-0 flex-1 overflow-hidden bg-white dark:bg-[#141517]">
         <aside
           className={[
             "hidden shrink-0 bg-white px-4 py-6 transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] dark:bg-[#141517] lg:flex lg:flex-col",
@@ -431,9 +432,11 @@ export function AdminShell() {
           </div>
         </aside>
 
-        <section className="flex min-w-0 flex-1 flex-col bg-white dark:bg-[#141517]">
-          <div className="flex flex-1 border-l border-t border-stone-200 bg-white px-6 py-6 dark:border-[#2d2e30] dark:bg-[#090b0b] sm:px-10 lg:rounded-tl-[5px]">
-            <div className="min-h-full w-full" />
+        <section className="flex min-h-0 min-w-0 flex-1 flex-col bg-white dark:bg-[#141517]">
+          <div className="flex min-h-0 flex-1 overflow-y-auto border-l border-t border-stone-200 bg-white px-6 py-6 dark:border-[#2d2e30] dark:bg-[#090b0b] sm:px-10 lg:rounded-tl-[5px]">
+            <div className="min-h-full w-full">
+              {activeSection.id === "articles" ? <ArticlesAdminList /> : null}
+            </div>
           </div>
         </section>
         </div>
