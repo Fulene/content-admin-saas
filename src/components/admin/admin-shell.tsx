@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   BarChart3,
   FileText,
@@ -56,6 +57,7 @@ export function AdminShell() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [areSidebarLabelsVisible, setAreSidebarLabelsVisible] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   const activeSection = useMemo(
     () =>
@@ -65,6 +67,8 @@ export function AdminShell() {
   );
 
   useEffect(() => {
+    setIsMounted(true);
+
     const storedTheme = window.localStorage.getItem("blog-admin-kit-theme");
 
     if (storedTheme === "dark" || storedTheme === "light") {
@@ -87,6 +91,117 @@ export function AdminShell() {
     setIsSidebarCollapsed(true);
     setAreSidebarLabelsVisible(false);
   }
+
+  const mobileMenu = (
+    <div className="fixed left-0 top-0 z-[9999] h-dvh w-dvw lg:hidden">
+      <button
+        type="button"
+        onClick={() => setIsMobileMenuOpen(false)}
+        className="mobile-menu-backdrop-in absolute inset-0 z-0 cursor-pointer bg-black/35"
+        aria-label="Fermer le menu"
+      />
+
+      <aside
+        className="mobile-menu-drawer-in absolute bottom-0 right-0 top-0 z-[1] flex w-[min(86dvw,340px)] flex-col border-l border-stone-200 bg-white px-5 py-6 shadow-2xl dark:border-[#2d2e30] dark:bg-[#141517]"
+      >
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-stone-100 text-stone-700 hover:bg-stone-200 dark:bg-[#151617] dark:text-stone-300 dark:hover:bg-[#101112]"
+            aria-label="Fermer le menu"
+            title="Fermer"
+          >
+            <X className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </div>
+
+        <nav className="mt-8 flex flex-col gap-2">
+          {sections.map((section) => {
+            const Icon = section.icon;
+            const isActive = section.id === activeSection.id;
+
+            return (
+              <button
+                key={section.id}
+                type="button"
+                onClick={() => {
+                  if (section.isDisabled) {
+                    return;
+                  }
+
+                  setActiveSectionId(section.id);
+                  setIsMobileMenuOpen(false);
+                }}
+                aria-disabled={section.isDisabled}
+                title={section.isDisabled ? undefined : section.label}
+                className={[
+                  "relative flex h-12 items-center gap-4 rounded-md px-4 text-left text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-red-50 text-stone-950 dark:bg-[#24262a] dark:text-white"
+                    : "text-stone-600 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-300 dark:hover:bg-[#18191b] dark:hover:text-white",
+                  section.isDisabled
+                    ? "cursor-default hover:bg-transparent hover:text-stone-600 dark:hover:bg-transparent dark:hover:text-stone-300"
+                    : "cursor-pointer",
+                ].join(" ")}
+                aria-current={isActive ? "page" : undefined}
+              >
+                <Icon
+                  className={[
+                    "h-5 w-5 shrink-0",
+                    isActive
+                      ? "text-[#ff6b6b] dark:text-[#ff8a3d]"
+                      : "text-stone-700 dark:text-[#ff8a3d]",
+                  ].join(" ")}
+                  aria-hidden="true"
+                />
+                <span>{section.label}</span>
+                {section.isDisabled ? (
+                  <span className="ml-auto rounded-full bg-[#f44336] px-2 py-0.5 text-[9px] font-bold uppercase leading-none text-white dark:bg-[#ff8a3d] dark:text-white">
+                    Soon
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="mt-auto flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={() =>
+              setThemeMode((mode) => (mode === "dark" ? "light" : "dark"))
+            }
+            className="flex h-12 cursor-pointer items-center gap-4 rounded-md px-4 text-sm font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-300 dark:hover:bg-[#18191b] dark:hover:text-white"
+          >
+            {themeMode === "dark" ? (
+              <Sun
+                className="h-5 w-5 shrink-0 text-[#ff6b16]"
+                aria-hidden="true"
+              />
+            ) : (
+              <Moon
+                className="h-5 w-5 shrink-0 text-stone-700"
+                aria-hidden="true"
+              />
+            )}
+            <span>{themeMode === "dark" ? "Mode clair" : "Mode sombre"}</span>
+          </button>
+
+          <button
+            type="button"
+            className="flex h-12 cursor-pointer items-center gap-4 rounded-md px-4 text-sm font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-300 dark:hover:bg-[#18191b] dark:hover:text-white"
+          >
+            <LogOut
+              className="h-5 w-5 shrink-0 text-stone-700 dark:text-[#ff6b16]"
+              aria-hidden="true"
+            />
+            <span>Logout</span>
+          </button>
+        </div>
+      </aside>
+    </div>
+  );
 
   return (
     <main className="h-screen overflow-hidden bg-white text-stone-950 dark:bg-[#090b0b] dark:text-stone-50">
@@ -176,126 +291,9 @@ export function AdminShell() {
           </div>
         </header>
 
-        <div
-          className={[
-            "fixed inset-0 z-50 lg:hidden",
-            isMobileMenuOpen ? "pointer-events-auto" : "pointer-events-none",
-          ].join(" ")}
-          aria-hidden={!isMobileMenuOpen}
-        >
-          <button
-            type="button"
-            onClick={() => setIsMobileMenuOpen(false)}
-            className={[
-              "absolute inset-0 cursor-pointer bg-black/35 transition-opacity duration-300",
-              isMobileMenuOpen ? "opacity-100" : "opacity-0",
-            ].join(" ")}
-            aria-label="Fermer le menu"
-          />
-
-          <aside
-            className={[
-              "absolute right-0 top-0 flex h-full w-[min(86vw,340px)] flex-col border-l border-stone-200 bg-white px-5 py-6 shadow-2xl transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] dark:border-[#2d2e30] dark:bg-[#141517]",
-              isMobileMenuOpen ? "translate-x-0" : "translate-x-full",
-            ].join(" ")}
-          >
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-stone-100 text-stone-700 hover:bg-stone-200 dark:bg-[#151617] dark:text-stone-300 dark:hover:bg-[#101112]"
-                aria-label="Fermer le menu"
-                title="Fermer"
-              >
-                <X className="h-5 w-5" aria-hidden="true" />
-              </button>
-            </div>
-
-            <nav className="mt-8 flex flex-col gap-2">
-              {sections.map((section) => {
-                const Icon = section.icon;
-                const isActive = section.id === activeSection.id;
-
-                return (
-                  <button
-                    key={section.id}
-                    type="button"
-                    onClick={() => {
-                      if (section.isDisabled) {
-                        return;
-                      }
-
-                      setActiveSectionId(section.id);
-                      setIsMobileMenuOpen(false);
-                    }}
-                    aria-disabled={section.isDisabled}
-                    title={section.isDisabled ? undefined : section.label}
-                    className={[
-                      "relative flex h-12 items-center gap-4 rounded-md px-4 text-left text-sm font-medium transition-colors",
-                      isActive
-                        ? "bg-red-50 text-stone-950 dark:bg-[#24262a] dark:text-white"
-                        : "text-stone-600 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-300 dark:hover:bg-[#18191b] dark:hover:text-white",
-                      section.isDisabled
-                        ? "cursor-default hover:bg-transparent hover:text-stone-600 dark:hover:bg-transparent dark:hover:text-stone-300"
-                        : "cursor-pointer",
-                    ].join(" ")}
-                    aria-current={isActive ? "page" : undefined}
-                  >
-                    <Icon
-                      className={[
-                        "h-5 w-5 shrink-0",
-                        isActive
-                          ? "text-[#ff6b6b] dark:text-[#ff8a3d]"
-                          : "text-stone-700 dark:text-[#ff8a3d]",
-                      ].join(" ")}
-                      aria-hidden="true"
-                    />
-                    <span>{section.label}</span>
-                    {section.isDisabled ? (
-                      <span className="ml-auto rounded-full bg-[#f44336] px-2 py-0.5 text-[9px] font-bold uppercase leading-none text-white dark:bg-[#ff8a3d] dark:text-white">
-                        Soon
-                      </span>
-                    ) : null}
-                  </button>
-                );
-              })}
-            </nav>
-
-            <div className="mt-auto flex flex-col gap-2">
-              <button
-                type="button"
-                onClick={() =>
-                  setThemeMode((mode) => (mode === "dark" ? "light" : "dark"))
-                }
-                className="flex h-12 cursor-pointer items-center gap-4 rounded-md px-4 text-sm font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-300 dark:hover:bg-[#18191b] dark:hover:text-white"
-              >
-                {themeMode === "dark" ? (
-                  <Sun
-                    className="h-5 w-5 shrink-0 text-[#ff6b16]"
-                    aria-hidden="true"
-                  />
-                ) : (
-                  <Moon
-                    className="h-5 w-5 shrink-0 text-stone-700"
-                    aria-hidden="true"
-                  />
-                )}
-                <span>{themeMode === "dark" ? "Mode clair" : "Mode sombre"}</span>
-              </button>
-
-              <button
-                type="button"
-                className="flex h-12 cursor-pointer items-center gap-4 rounded-md px-4 text-sm font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-300 dark:hover:bg-[#18191b] dark:hover:text-white"
-              >
-                <LogOut
-                  className="h-5 w-5 shrink-0 text-stone-700 dark:text-[#ff6b16]"
-                  aria-hidden="true"
-                />
-                <span>Logout</span>
-              </button>
-            </div>
-          </aside>
-        </div>
+        {isMounted && isMobileMenuOpen
+          ? createPortal(mobileMenu, document.body)
+          : null}
 
         <div className="flex min-h-0 flex-1 overflow-hidden bg-white dark:bg-[#141517]">
         <aside

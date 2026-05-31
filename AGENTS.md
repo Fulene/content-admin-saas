@@ -32,6 +32,7 @@ Le projet ne doit pas contenir de fonctionnalité métier tant que celle-ci n'es
 - Ne pas ajouter Husky, lint-staged, hooks Git ou pre-commit hooks.
 - Garder TypeScript en mode strict.
 - Utiliser l'alias `@/*` pour les imports depuis `src/`.
+- Après plusieurs tentatives de correction ou une phase de debug, nettoyer le code avant de terminer : supprimer les marqueurs temporaires, scripts de diagnostic, fichiers de capture, logs et changements générés sans lien direct avec la correction finale.
 
 ## Séparation `app` / `features`
 
