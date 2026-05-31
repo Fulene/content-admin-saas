@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
   BarChart3,
   FileText,
-  Home,
   LogOut,
   Menu,
   Moon,
@@ -15,23 +14,18 @@ import {
   X,
 } from "lucide-react";
 
-type AdminSectionId = "overview" | "articles" | "seo" | "settings";
+type AdminSectionId = "articles" | "analytics" | "profile";
 type ThemeMode = "light" | "dark";
 
 type AdminSection = {
   id: AdminSectionId;
   label: string;
   title: string;
-  icon: typeof Home;
+  icon: typeof FileText;
+  isDisabled?: boolean;
 };
 
 const sections: AdminSection[] = [
-  {
-    id: "overview",
-    label: "Dashboard",
-    title: "Dashboard",
-    icon: Home,
-  },
   {
     id: "articles",
     label: "Articles",
@@ -39,22 +33,24 @@ const sections: AdminSection[] = [
     icon: FileText,
   },
   {
-    id: "seo",
-    label: "SEO",
-    title: "SEO",
+    id: "analytics",
+    label: "Analytics",
+    title: "Analytics",
     icon: BarChart3,
+    isDisabled: true,
   },
   {
-    id: "settings",
-    label: "Settings",
-    title: "Settings",
+    id: "profile",
+    label: "Mon profil",
+    title: "Mon profil",
     icon: Settings,
+    isDisabled: true,
   },
 ];
 
 export function AdminShell() {
   const [activeSectionId, setActiveSectionId] =
-    useState<AdminSectionId>("overview");
+    useState<AdminSectionId>("articles");
   const [themeMode, setThemeMode] = useState<ThemeMode>("dark");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [areSidebarLabelsVisible, setAreSidebarLabelsVisible] = useState(true);
@@ -93,8 +89,8 @@ export function AdminShell() {
 
   return (
     <main className="min-h-screen bg-white text-stone-950 dark:bg-[#090b0b] dark:text-stone-50">
-      <div className="flex min-h-screen flex-col bg-white dark:bg-[#202124]">
-        <header className="flex h-18 shrink-0 items-center justify-between bg-white px-5 dark:bg-[#202124] lg:h-20 lg:px-8">
+      <div className="flex min-h-screen flex-col bg-white dark:bg-[#141517]">
+        <header className="flex h-18 shrink-0 items-center justify-between bg-white px-5 dark:bg-[#141517] lg:h-20 lg:px-8">
           <div className="flex min-w-0 items-center gap-24">
             <div className="min-w-0">
               <p className="text-base font-bold text-[#f44336] dark:text-[#ff8a3d] lg:text-lg">
@@ -198,7 +194,7 @@ export function AdminShell() {
 
           <aside
             className={[
-              "absolute right-0 top-0 flex h-full w-[min(86vw,340px)] flex-col border-l border-stone-200 bg-white px-5 py-6 shadow-2xl transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] dark:border-[#2d2e30] dark:bg-[#202124]",
+              "absolute right-0 top-0 flex h-full w-[min(86vw,340px)] flex-col border-l border-stone-200 bg-white px-5 py-6 shadow-2xl transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] dark:border-[#2d2e30] dark:bg-[#141517]",
               isMobileMenuOpen ? "translate-x-0" : "translate-x-full",
             ].join(" ")}
           >
@@ -224,14 +220,23 @@ export function AdminShell() {
                     key={section.id}
                     type="button"
                     onClick={() => {
+                      if (section.isDisabled) {
+                        return;
+                      }
+
                       setActiveSectionId(section.id);
                       setIsMobileMenuOpen(false);
                     }}
+                    aria-disabled={section.isDisabled}
+                    title={section.isDisabled ? undefined : section.label}
                     className={[
-                      "flex h-12 cursor-pointer items-center gap-4 rounded-md px-4 text-left text-sm font-medium transition-colors",
+                      "relative flex h-12 items-center gap-4 rounded-md px-4 text-left text-sm font-medium transition-colors",
                       isActive
-                        ? "bg-red-50 text-stone-950 dark:bg-[#111213] dark:text-white"
+                        ? "bg-red-50 text-stone-950 dark:bg-[#24262a] dark:text-white"
                         : "text-stone-600 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-300 dark:hover:bg-[#18191b] dark:hover:text-white",
+                      section.isDisabled
+                        ? "cursor-default hover:bg-transparent hover:text-stone-600 dark:hover:bg-transparent dark:hover:text-stone-300"
+                        : "cursor-pointer",
                     ].join(" ")}
                     aria-current={isActive ? "page" : undefined}
                   >
@@ -245,6 +250,11 @@ export function AdminShell() {
                       aria-hidden="true"
                     />
                     <span>{section.label}</span>
+                    {section.isDisabled ? (
+                      <span className="ml-auto rounded-full bg-[#f44336] px-2 py-0.5 text-[9px] font-bold uppercase leading-none text-white dark:bg-[#ff8a3d] dark:text-white">
+                        Soon
+                      </span>
+                    ) : null}
                   </button>
                 );
               })}
@@ -286,11 +296,12 @@ export function AdminShell() {
           </aside>
         </div>
 
-        <div className="flex min-h-0 flex-1 bg-white dark:bg-[#202124]">
+        <div className="flex min-h-0 flex-1 bg-white dark:bg-[#141517]">
         <aside
           className={[
-            "hidden shrink-0 overflow-hidden bg-white px-4 py-6 transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] dark:bg-[#202124] lg:flex lg:flex-col",
+            "hidden shrink-0 bg-white px-4 py-6 transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] dark:bg-[#141517] lg:flex lg:flex-col",
             isSidebarCollapsed ? "w-[84px]" : "w-80",
+            isSidebarCollapsed ? "overflow-visible" : "overflow-hidden",
           ].join(" ")}
         >
           <div className="flex flex-1 flex-col">
@@ -308,17 +319,29 @@ export function AdminShell() {
                   <button
                     key={section.id}
                     type="button"
-                    onClick={() => setActiveSectionId(section.id)}
+                    onClick={() => {
+                      if (section.isDisabled) {
+                        return;
+                      }
+
+                      setActiveSectionId(section.id);
+                    }}
+                    aria-disabled={section.isDisabled}
                     className={[
-                      "relative flex h-12 cursor-pointer items-center rounded-md text-left text-sm font-medium transition-colors",
+                      "group relative flex h-12 items-center rounded-md text-left text-sm font-medium transition-colors",
                       isActive
-                        ? "bg-red-50 text-stone-950 dark:bg-[#111213] dark:text-white"
+                        ? "bg-red-50 text-stone-950 dark:bg-[#24262a] dark:text-white"
                         : "text-stone-600 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-300 dark:hover:bg-[#18191b] dark:hover:text-white",
-                      "w-full overflow-hidden px-4",
+                      section.isDisabled
+                        ? "cursor-default hover:bg-transparent hover:text-stone-600 dark:hover:bg-transparent dark:hover:text-stone-300"
+                        : "cursor-pointer",
+                      isSidebarCollapsed
+                        ? "w-full overflow-visible px-4"
+                        : "w-full overflow-hidden px-4",
                       "gap-4",
                     ].join(" ")}
                     aria-current={isActive ? "page" : undefined}
-                    title={section.label}
+                    title={section.isDisabled ? undefined : section.label}
                   >
                     <Icon
                       className={[
@@ -331,12 +354,22 @@ export function AdminShell() {
                     />
                     <span
                       className={[
-                        "block w-40 whitespace-nowrap transition-opacity duration-150 ease-out",
+                        "flex min-w-0 items-start gap-2 whitespace-nowrap transition-opacity duration-150 ease-out",
                         areSidebarLabelsVisible ? "opacity-100" : "opacity-0",
                       ].join(" ")}
                     >
-                      {section.label}
+                      <span>{section.label}</span>
+                      {section.isDisabled ? (
+                        <span className="rounded-full bg-[#f44336] px-2 py-0.5 text-[9px] font-bold uppercase leading-none text-white dark:bg-[#ff8a3d] dark:text-white">
+                          Soon
+                        </span>
+                      ) : null}
                     </span>
+                    {section.isDisabled && !areSidebarLabelsVisible ? (
+                      <span className="pointer-events-none absolute left-11 top-1/2 z-20 -translate-y-1/2 rounded-full bg-[#e85a50] px-2 py-0.5 text-[9px] font-bold uppercase text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100 dark:bg-[#d97a35] dark:text-white">
+                        Soon
+                      </span>
+                    ) : null}
                   </button>
                 );
               })}
@@ -398,7 +431,7 @@ export function AdminShell() {
           </div>
         </aside>
 
-        <section className="flex min-w-0 flex-1 flex-col bg-white dark:bg-[#202124]">
+        <section className="flex min-w-0 flex-1 flex-col bg-white dark:bg-[#141517]">
           <div className="flex flex-1 border-l border-t border-stone-200 bg-white px-6 py-6 dark:border-[#2d2e30] dark:bg-[#090b0b] sm:px-10 lg:rounded-tl-[5px]">
             <div className="min-h-full w-full" />
           </div>
