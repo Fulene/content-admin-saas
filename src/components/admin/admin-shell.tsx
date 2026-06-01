@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import {
-  BarChart3,
+  ChevronDown,
   FileText,
   LogOut,
   Menu,
@@ -11,62 +11,69 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
+  ShieldCheck,
   Sun,
+  UserRound,
   X,
 } from "lucide-react";
 import { logoutAction } from "@/features/auth/actions/auth.actions";
 import { ArticlesAdminList } from "@/features/articles/components/articles-admin-list";
+import { ProfileAdminSection } from "@/features/profile/components/profile-admin-section";
+import type { ProfileView } from "@/features/profile/types/profile";
 
-type AdminSectionId = "articles" | "analytics" | "profile";
+type AdminSectionId = "articles" | "profile-edit" | "profile-security";
 type ThemeMode = "light" | "dark";
 
-type AdminSection = {
-  id: AdminSectionId;
-  label: string;
-  title: string;
-  icon: typeof FileText;
-  isDisabled?: boolean;
-};
-
-const sections: AdminSection[] = [
-  {
-    id: "articles",
-    label: "Articles",
-    title: "Articles",
-    icon: FileText,
-  },
-  {
-    id: "analytics",
-    label: "Analytics",
-    title: "Analytics",
-    icon: BarChart3,
-    isDisabled: true,
-  },
-  {
-    id: "profile",
-    label: "Mon profil",
-    title: "Mon profil",
-    icon: Settings,
-    isDisabled: true,
-  },
+const profileSectionIds: AdminSectionId[] = [
+  "profile-edit",
+  "profile-security",
 ];
 
-export function AdminShell({ userEmail }: { userEmail: string }) {
+const profileSubsections = [
+  {
+    id: "profile-edit",
+    label: "Modifier mon profil",
+    icon: UserRound,
+  },
+  {
+    id: "profile-security",
+    label: "Securite",
+    icon: ShieldCheck,
+  },
+] satisfies Array<{
+  id: AdminSectionId;
+  label: string;
+  icon: typeof FileText;
+}>;
+
+export function AdminShell({
+  initialProfile,
+  userEmail,
+  userId,
+}: {
+  initialProfile: ProfileView | null;
+  userEmail: string;
+  userId: string;
+}) {
   const [activeSectionId, setActiveSectionId] =
     useState<AdminSectionId>("articles");
   const [themeMode, setThemeMode] = useState<ThemeMode>("dark");
+  const [profile, setProfile] = useState<ProfileView | null>(initialProfile);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [areSidebarLabelsVisible, setAreSidebarLabelsVisible] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
-  const activeSection = useMemo(
-    () =>
-      sections.find((section) => section.id === activeSectionId) ??
-      sections[0],
-    [activeSectionId],
-  );
-  const userLabel = userEmail.split("@")[0] || "Admin";
+  const isProfileActive = profileSectionIds.includes(activeSectionId);
+  const userLabel =
+    profile?.first_name?.trim() || userEmail.split("@")[0] || "Admin";
+
+  useEffect(() => {
+    if (isProfileActive) {
+      setIsProfileMenuOpen(true);
+    }
+  }, [isProfileActive]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -119,53 +126,48 @@ export function AdminShell({ userEmail }: { userEmail: string }) {
         </div>
 
         <nav className="mt-8 flex flex-col gap-2">
-          {sections.map((section) => {
-            const Icon = section.icon;
-            const isActive = section.id === activeSection.id;
+          <SidebarButton
+            icon={FileText}
+            isActive={activeSectionId === "articles"}
+            label="Articles"
+            onClick={() => {
+              setActiveSectionId("articles");
+              setIsMobileMenuOpen(false);
+            }}
+          />
 
-            return (
-              <button
-                key={section.id}
-                type="button"
-                onClick={() => {
-                  if (section.isDisabled) {
-                    return;
-                  }
+          <SidebarButton
+            icon={Settings}
+            isActive={isProfileActive}
+            isDropdownOpen={isProfileMenuOpen}
+            label="Mon profil"
+            onClick={() => {
+              setIsProfileMenuOpen((value) => !value);
+            }}
+          />
 
-                  setActiveSectionId(section.id);
-                  setIsMobileMenuOpen(false);
-                }}
-                aria-disabled={section.isDisabled}
-                title={section.isDisabled ? undefined : section.label}
-                className={[
-                  "relative flex h-12 items-center gap-4 rounded-md px-4 text-left text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-red-50 text-stone-950 dark:bg-[#24262a] dark:text-white"
-                    : "text-stone-600 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-300 dark:hover:bg-[#18191b] dark:hover:text-white",
-                  section.isDisabled
-                    ? "cursor-default hover:bg-transparent hover:text-stone-600 dark:hover:bg-transparent dark:hover:text-stone-300"
-                    : "cursor-pointer",
-                ].join(" ")}
-                aria-current={isActive ? "page" : undefined}
-              >
-                <Icon
-                  className={[
-                    "h-5 w-5 shrink-0",
-                    isActive
-                      ? "text-[#ff6b6b] dark:text-[#ff8a3d]"
-                      : "text-stone-700 dark:text-[#ff8a3d]",
-                  ].join(" ")}
-                  aria-hidden="true"
+          <div
+            className={[
+              "ml-7 mt-2 grid border-l border-stone-200 pl-3 transition-[grid-template-rows] duration-200 dark:border-[#2d2e30]",
+              isProfileMenuOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+            ].join(" ")}
+          >
+            <div className="flex min-h-0 flex-col gap-1 overflow-hidden">
+              {profileSubsections.map((section) => (
+                <SidebarButton
+                  key={section.id}
+                  icon={section.icon}
+                  isCompact
+                  isActive={activeSectionId === section.id}
+                  label={section.label}
+                  onClick={() => {
+                    setActiveSectionId(section.id);
+                    setIsMobileMenuOpen(false);
+                  }}
                 />
-                <span>{section.label}</span>
-                {section.isDisabled ? (
-                  <span className="ml-auto rounded-full bg-[#f44336] px-2 py-0.5 text-[9px] font-bold uppercase leading-none text-white dark:bg-[#ff8a3d] dark:text-white">
-                    Soon
-                  </span>
-                ) : null}
-              </button>
-            );
-          })}
+              ))}
+            </div>
+          </div>
         </nav>
 
         <div className="mt-auto flex flex-col gap-2">
@@ -240,12 +242,6 @@ export function AdminShell({ userEmail }: { userEmail: string }) {
             </button>
           </div>
 
-          <div className="absolute left-1/2 hidden -translate-x-1/2 text-center md:block">
-            <p className="truncate text-xl font-bold text-stone-950 dark:text-white">
-              {activeSection.title}
-            </p>
-          </div>
-
           <div className="hidden min-w-0 text-right md:block">
             <p className="truncate text-xl font-normal text-stone-800 dark:text-stone-100">
               Hello{" "}
@@ -259,30 +255,6 @@ export function AdminShell({ userEmail }: { userEmail: string }) {
           </div>
 
           <div className="flex items-center gap-3 md:hidden">
-            <button
-              type="button"
-              onClick={() =>
-                setThemeMode((mode) => (mode === "dark" ? "light" : "dark"))
-              }
-              className="hidden"
-              aria-label={
-                themeMode === "dark"
-                  ? "Activer le mode clair"
-                  : "Activer le mode sombre"
-              }
-              title={
-                themeMode === "dark"
-                  ? "Activer le mode clair"
-                  : "Activer le mode sombre"
-              }
-            >
-              {themeMode === "dark" ? (
-                <Sun className="h-5 w-5" aria-hidden="true" />
-              ) : (
-                <Moon className="h-5 w-5" aria-hidden="true" />
-              )}
-            </button>
-
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(true)}
@@ -314,68 +286,42 @@ export function AdminShell({ userEmail }: { userEmail: string }) {
                 "w-full",
               ].join(" ")}
             >
-              {sections.map((section) => {
-                const Icon = section.icon;
-                const isActive = section.id === activeSection.id;
+              <SidebarButton
+                icon={FileText}
+                isActive={activeSectionId === "articles"}
+                isCollapsed={isSidebarCollapsed}
+                isLabelVisible={areSidebarLabelsVisible}
+                label="Articles"
+                onClick={() => setActiveSectionId("articles")}
+              />
 
-                return (
-                  <button
-                    key={section.id}
-                    type="button"
-                    onClick={() => {
-                      if (section.isDisabled) {
-                        return;
-                      }
+              <SidebarButton
+                icon={Settings}
+                isActive={isProfileActive}
+                isCollapsed={isSidebarCollapsed}
+                isDropdownOpen={isProfileMenuOpen}
+                isLabelVisible={areSidebarLabelsVisible}
+                label="Mon profil"
+                onClick={() => {
+                  setIsProfileMenuOpen((value) => !value);
+                }}
+              />
 
-                      setActiveSectionId(section.id);
-                    }}
-                    aria-disabled={section.isDisabled}
-                    className={[
-                      "group relative flex h-12 items-center rounded-md text-left text-sm font-medium transition-colors",
-                      isActive
-                        ? "bg-red-50 text-stone-950 dark:bg-[#24262a] dark:text-white"
-                        : "text-stone-600 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-300 dark:hover:bg-[#18191b] dark:hover:text-white",
-                      section.isDisabled
-                        ? "cursor-default hover:bg-transparent hover:text-stone-600 dark:hover:bg-transparent dark:hover:text-stone-300"
-                        : "cursor-pointer",
-                      isSidebarCollapsed
-                        ? "w-full overflow-visible px-4"
-                        : "w-full overflow-hidden px-4",
-                      "gap-4",
-                    ].join(" ")}
-                    aria-current={isActive ? "page" : undefined}
-                    title={section.isDisabled ? undefined : section.label}
-                  >
-                    <Icon
-                      className={[
-                        "h-5 w-5 shrink-0",
-                        isActive
-                          ? "text-[#f44336] dark:text-[#ff8a3d]"
-                          : "text-stone-700 dark:text-[#ff8a3d]",
-                      ].join(" ")}
-                      aria-hidden="true"
+              {!isSidebarCollapsed && isProfileMenuOpen ? (
+                <div className="ml-7 mt-2 flex flex-col gap-1 overflow-hidden border-l border-stone-200 pl-3 dark:border-[#2d2e30]">
+                  {profileSubsections.map((section) => (
+                    <SidebarButton
+                      key={section.id}
+                      icon={section.icon}
+                      isCompact
+                      isActive={activeSectionId === section.id}
+                      isLabelVisible={areSidebarLabelsVisible}
+                      label={section.label}
+                      onClick={() => setActiveSectionId(section.id)}
                     />
-                    <span
-                      className={[
-                        "flex min-w-0 items-start gap-2 whitespace-nowrap transition-opacity duration-150 ease-out",
-                        areSidebarLabelsVisible ? "opacity-100" : "opacity-0",
-                      ].join(" ")}
-                    >
-                      <span>{section.label}</span>
-                      {section.isDisabled ? (
-                        <span className="rounded-full bg-[#f44336] px-2 py-0.5 text-[9px] font-bold uppercase leading-none text-white dark:bg-[#ff8a3d] dark:text-white">
-                          Soon
-                        </span>
-                      ) : null}
-                    </span>
-                    {section.isDisabled && !areSidebarLabelsVisible ? (
-                      <span className="pointer-events-none absolute left-11 top-1/2 z-20 -translate-y-1/2 rounded-full bg-[#e85a50] px-2 py-0.5 text-[9px] font-bold uppercase text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100 dark:bg-[#d97a35] dark:text-white">
-                        Soon
-                      </span>
-                    ) : null}
-                  </button>
-                );
-              })}
+                  ))}
+                </div>
+              ) : null}
             </nav>
 
             <button
@@ -439,12 +385,91 @@ export function AdminShell({ userEmail }: { userEmail: string }) {
         <section className="flex min-h-0 min-w-0 flex-1 flex-col bg-white dark:bg-[#141517]">
           <div className="flex min-h-0 flex-1 overflow-y-auto border-l border-t border-stone-200 bg-white px-6 py-6 [scrollbar-gutter:stable] dark:border-[#2d2e30] dark:bg-[#090b0b] sm:px-10 lg:rounded-tl-[5px]">
             <div className="min-h-full w-full">
-              {activeSection.id === "articles" ? <ArticlesAdminList /> : null}
+              {activeSectionId === "articles" ? <ArticlesAdminList /> : null}
+              {isProfileActive ? (
+                <ProfileAdminSection
+                  initialProfile={profile}
+                  mode={
+                    activeSectionId === "profile-security"
+                      ? "security"
+                      : "edit"
+                  }
+                  userEmail={userEmail}
+                  userId={userId}
+                  onProfileChange={setProfile}
+                />
+              ) : null}
             </div>
           </div>
         </section>
         </div>
       </div>
     </main>
+  );
+}
+
+function SidebarButton({
+  icon: Icon,
+  isActive,
+  isCollapsed = false,
+  isCompact = false,
+  isDropdownOpen,
+  isLabelVisible = true,
+  label,
+  onClick,
+}: {
+  icon: typeof FileText;
+  isActive: boolean;
+  isCollapsed?: boolean;
+  isCompact?: boolean;
+  isDropdownOpen?: boolean;
+  isLabelVisible?: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "group relative flex items-center rounded-md text-left font-medium transition-colors",
+        isCompact ? "h-10 gap-3 px-3 text-sm" : "h-12 gap-4 px-4 text-sm",
+        isActive
+          ? "bg-red-50 text-stone-950 dark:bg-[#24262a] dark:text-white"
+          : "text-stone-600 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-300 dark:hover:bg-[#18191b] dark:hover:text-white",
+        isCollapsed ? "w-full overflow-visible" : "w-full overflow-hidden",
+        "cursor-pointer",
+      ].join(" ")}
+      aria-current={isActive ? "page" : undefined}
+      title={label}
+    >
+      <Icon
+        className={[
+          isCompact ? "h-4 w-4" : "h-5 w-5",
+          "shrink-0",
+          isActive
+            ? "text-[#f44336] dark:text-[#ff8a3d]"
+            : "text-stone-700 dark:text-[#ff8a3d]",
+        ].join(" ")}
+        aria-hidden="true"
+      />
+      <span
+        className={[
+          "min-w-0 flex-1 truncate whitespace-nowrap transition-opacity duration-150 ease-out",
+          isLabelVisible ? "opacity-100" : "opacity-0",
+        ].join(" ")}
+      >
+        {label}
+      </span>
+      {typeof isDropdownOpen === "boolean" && isLabelVisible ? (
+        <ChevronDown
+          className={[
+            "h-4 w-4 shrink-0 text-stone-500 transition-transform duration-200 dark:text-stone-400",
+            isDropdownOpen ? "rotate-180" : "",
+          ].join(" ")}
+          aria-hidden="true"
+        />
+      ) : null}
+    </button>
   );
 }

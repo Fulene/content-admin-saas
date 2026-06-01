@@ -71,10 +71,129 @@
     will-change: opacity, transform;
   }
 
+  @keyframes profile-section-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .profile-section-in {
+    animation: profile-section-in 220ms ease-out both;
+  }
+
+  @keyframes profile-title-in {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .profile-title-in {
+    animation: profile-title-in 220ms ease-out both;
+  }
+
+  @keyframes profile-toast-in {
+    0% {
+      opacity: 0;
+      transform: translate3d(calc(100% + 32px), 0, 0);
+    }
+
+    100% {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @keyframes profile-toast-out {
+    0% {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+
+    100% {
+      opacity: 0;
+      transform: translate3d(calc(100% + 32px), 0, 0);
+    }
+  }
+
+  @keyframes profile-toast-mobile-in {
+    0% {
+      opacity: 0;
+      transform: translate3d(-50%, 18px, 0) scale(0.98);
+    }
+
+    100% {
+      opacity: 1;
+      transform: translate3d(-50%, 0, 0) scale(1);
+    }
+  }
+
+  @keyframes profile-toast-mobile-out {
+    0% {
+      opacity: 1;
+      transform: translate3d(-50%, 0, 0) scale(1);
+    }
+
+    100% {
+      opacity: 0;
+      transform: translate3d(-50%, 18px, 0) scale(0.98);
+    }
+  }
+
+  @keyframes profile-toast-float {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0);
+    }
+
+    50% {
+      transform: translate3d(0, -4px, 0);
+    }
+  }
+
+  .profile-toast-in {
+    animation: profile-toast-in 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .profile-toast-out {
+    animation: profile-toast-out 220ms ease-in both;
+  }
+
+  .profile-toast-float {
+    animation: profile-toast-float 2200ms ease-in-out 320ms infinite;
+  }
+
+  @media (max-width: 767px) {
+    .profile-toast-in {
+      animation-name: profile-toast-mobile-in;
+    }
+
+    .profile-toast-out {
+      animation-name: profile-toast-mobile-out;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .mobile-menu-backdrop-in,
-    .mobile-menu-drawer-in {
+    .mobile-menu-drawer-in,
+    .profile-section-in,
+    .profile-title-in,
+    .profile-toast-in,
+    .profile-toast-out,
+    .profile-toast-float {
       animation-duration: 1ms;
+      animation-iteration-count: 1;
     }
   }
 }
