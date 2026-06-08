@@ -13,7 +13,7 @@ export function CreatableChipCombobox({
   onCreate,
   onCreateError,
   options,
-  placeholder = "Taper pour rechercher ou creer",
+  placeholder = "Taper pour rechercher ou créer",
   value,
 }: {
   createLabel?: string;
@@ -66,7 +66,7 @@ export function CreatableChipCombobox({
       onCreateError?.(
         error instanceof Error
           ? error.message
-          : "Impossible de creer cet element.",
+          : "Impossible de créer cet élément.",
       );
     } finally {
       setIsCreating(false);
@@ -94,9 +94,11 @@ export function CreatableChipCombobox({
           {selectedOptions.map((option) => (
             <span
               key={option.id}
-              className="inline-flex h-8 items-center gap-1 rounded-full bg-red-50 px-3 text-sm font-medium text-stone-950 dark:bg-[#24262a] dark:text-white"
+              className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[#ffc2b8] bg-[#ffe7e2] px-3 text-sm font-semibold text-[#9f2119] dark:border-[#7a3329] dark:bg-[#3a211c] dark:text-[#ffb199]"
             >
-              {option.label}
+              <span className="block h-8 leading-8">
+                {option.label}
+              </span>
               <button
                 type="button"
                 disabled={disabled}
@@ -104,7 +106,7 @@ export function CreatableChipCombobox({
                 onClick={() =>
                   onChange(value.filter((selectedId) => selectedId !== option.id))
                 }
-                className="inline-flex h-5 w-5 cursor-pointer items-center justify-center rounded-full text-stone-500 hover:bg-stone-200 hover:text-stone-950 disabled:cursor-default dark:text-stone-300 dark:hover:bg-[#18191b] dark:hover:text-white"
+                className="inline-flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-full text-[#9f2119]/70 hover:bg-[#ffc2b8] hover:text-[#7f1d1d] disabled:cursor-default dark:text-[#ffb199]/75 dark:hover:bg-[#5a2a22] dark:hover:text-[#ffd2c3]"
                 aria-label={`Retirer ${option.label}`}
               >
                 <X className="h-3 w-3" aria-hidden="true" />

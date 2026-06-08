@@ -19,6 +19,7 @@ export function CreatableDropdown({
   onCreateError,
   options,
   placeholder = "",
+  required = false,
   value,
 }: {
   createLabel?: string;
@@ -30,6 +31,7 @@ export function CreatableDropdown({
   onCreateError?: (message: string) => void;
   options: CreatableDropdownOption[];
   placeholder?: string;
+  required?: boolean;
   value: string | null;
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -88,7 +90,7 @@ export function CreatableDropdown({
       onCreateError?.(
         error instanceof Error
           ? error.message
-          : "Impossible de creer cet element.",
+          : "Impossible de créer cet élément.",
       );
     } finally {
       setIsCreating(false);
@@ -102,6 +104,7 @@ export function CreatableDropdown({
         className="text-sm font-semibold text-stone-800 dark:text-stone-200"
       >
         {label}
+        {required ? <span className="text-[#f44336]"> *</span> : null}
       </label>
 
       <div
@@ -144,6 +147,7 @@ export function CreatableDropdown({
           aria-expanded={isOpen}
           aria-haspopup="listbox"
           aria-autocomplete="list"
+          aria-required={required}
         />
 
         {canCreate ? (

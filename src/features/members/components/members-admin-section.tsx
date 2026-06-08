@@ -18,6 +18,11 @@ import type { Role, SiteMember } from "@/features/members/types/member";
 import { useActiveSite } from "@/features/sites/components/active-site-provider";
 
 const ITEMS_PER_PAGE_OPTIONS = [5, 10, 20, 50] as const;
+const ROLE_ORDER_BY_CODE: Record<string, number> = {
+  OWNER: 0,
+  EDITOR: 1,
+  VIEWER: 2,
+};
 
 export function MembersAdminSection({ currentUserId }: { currentUserId: string }) {
   const { activeSiteId } = useActiveSite();
@@ -35,9 +40,27 @@ export function MembersAdminSection({ currentUserId }: { currentUserId: string }
     void loadData();
   }, [activeSiteId]);
 
-  const roleOptions = useMemo(
-    () => roles.map((role) => ({ id: role.id, label: role.label })),
+  const orderedRoles = useMemo(
+    () =>
+      roles.toSorted((firstRole, secondRole) => {
+        const firstOrder =
+          ROLE_ORDER_BY_CODE[firstRole.code.toUpperCase()] ??
+          Number.MAX_SAFE_INTEGER;
+        const secondOrder =
+          ROLE_ORDER_BY_CODE[secondRole.code.toUpperCase()] ??
+          Number.MAX_SAFE_INTEGER;
+
+        if (firstOrder !== secondOrder) {
+          return firstOrder - secondOrder;
+        }
+
+        return firstRole.label.localeCompare(secondRole.label);
+      }),
     [roles],
+  );
+  const roleOptions = useMemo(
+    () => orderedRoles.map((role) => ({ id: role.id, label: role.label })),
+    [orderedRoles],
   );
   const ownerRoleId = useMemo(
     () => roles.find((role) => role.code === "OWNER")?.id ?? null,
@@ -53,12 +76,12 @@ export function MembersAdminSection({ currentUserId }: { currentUserId: string }
   const roleFilters = useMemo(
     () => [
       { id: "all", label: "Tous" },
-      ...roles.map((role) => ({
+      ...orderedRoles.map((role) => ({
         id: role.id,
         label: role.label,
       })),
     ],
-    [roles],
+    [orderedRoles],
   );
   const filteredMembers = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();

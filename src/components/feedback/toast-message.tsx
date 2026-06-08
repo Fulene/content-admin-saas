@@ -55,17 +55,17 @@ export function ToastMessage({
   return (
     <div
       className={[
-        "fixed bottom-5 left-1/2 z-[10000] w-[calc(100dvw-2rem)] max-w-sm md:bottom-auto md:left-auto md:right-5 md:top-24 md:w-auto",
+        "fixed bottom-5 left-1/2 z-[10000] w-[calc(100dvw-2rem)] max-w-sm md:left-auto md:right-5 md:w-auto",
         isLeaving ? "profile-toast-out" : "profile-toast-in",
       ].join(" ")}
     >
       <div
         className={[
-          "flex items-center gap-2 rounded-md border px-4 py-3 text-sm font-medium shadow-lg dark:shadow-white/5",
+          "flex items-center gap-2 rounded-md border px-4 py-3 text-sm font-medium shadow-xl shadow-black/10 backdrop-blur dark:shadow-black/35",
           isLeaving ? "" : "profile-toast-float",
           isSuccess
-            ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-500/10 dark:text-emerald-300"
-            : "border-red-200 bg-red-50 text-[#b42318] dark:border-[#5f2a20] dark:bg-[#241412] dark:text-[#ffb199]",
+            ? "border-emerald-300 bg-emerald-100 text-emerald-900 shadow-emerald-950/10 dark:border-emerald-400/35 dark:bg-[#10251d] dark:text-emerald-100"
+            : "border-[#f44336]/35 bg-[#ffe7e2] text-[#7f1d16] shadow-[#f44336]/15 dark:border-[#ff8a3d]/35 dark:bg-[#2a1815] dark:text-[#ffe7e2]",
         ].join(" ")}
       >
         <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />

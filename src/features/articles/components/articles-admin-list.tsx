@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   ArrowUpDown,
   ChevronDown,
@@ -8,18 +9,34 @@ import {
   ChevronRight,
   ChevronUp,
   Eye,
+  EyeOff,
+  ExternalLink,
   Pencil,
   Plus,
   Search,
   Trash2,
+  type LucideIcon,
 } from "lucide-react";
+import { ConfirmDialog } from "@/components/dialogs/confirm-dialog";
 import {
   ToastMessage,
   type ToastMessageState,
 } from "@/components/feedback/toast-message";
 import { SelectDropdown } from "@/components/forms/select-dropdown";
 import { ArticleCreateDrawer } from "@/features/articles/components/article-create-drawer";
-import { getArticles } from "@/features/articles/services/articles.service";
+import { ArticleDetailsDialog } from "@/features/articles/components/article-details-dialog";
+import {
+  ArticleEditDrawer,
+  type ArticleEditFocusTarget,
+} from "@/features/articles/components/article-edit-drawer";
+import { ArticleImageDialog } from "@/features/articles/components/article-image-dialog";
+import { ArticleImagePreviewLabel } from "@/features/articles/components/article-image-preview-label";
+import {
+  deleteArticleForSite,
+  getArticles,
+  getArticleTagsByArticleIds,
+  updateArticleStatus,
+} from "@/features/articles/services/articles.service";
 import type {
   Article,
   ArticleStatus,
@@ -28,15 +45,19 @@ import type {
 import { getCategories } from "@/features/categories/services/categories.service";
 import type { Category } from "@/features/categories/types/category";
 import { useActiveSite } from "@/features/sites/components/active-site-provider";
+import type { Tag } from "@/features/tags/types/tag";
 
 type LoadState = "idle" | "loading" | "success" | "error";
 type SortColumn =
   | "title"
+  | "summary"
   | "category"
+  | "tags"
   | "status"
   | "published_at"
-  | "updated_at"
-  | "updated_by";
+  | "seo"
+  | "image"
+  | "updated_at";
 type SortDirection = "asc" | "desc";
 type ActiveSortState = {
   column: SortColumn;
@@ -51,8 +72,8 @@ const statusFilters: Array<{
   value: ArticleStatusFilter;
 }> = [
   { label: "Tous", value: "all" },
-  { label: "Brouillons", value: "draft" },
   { label: "Publiés", value: "published" },
+  { label: "Brouillons", value: "draft" },
 ];
 
 const statusLabels: Record<ArticleStatus, string> = {
@@ -64,6 +85,9 @@ export function ArticlesAdminList() {
   const { activeSiteId } = useActiveSite();
   const [articles, setArticles] = useState<Article[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [articleTagsById, setArticleTagsById] = useState<Map<string, Tag[]>>(
+    () => new Map(),
+  );
   const [loadState, setLoadState] = useState<LoadState>("idle");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<ArticleStatusFilter>("all");
@@ -78,6 +102,17 @@ export function ArticlesAdminList() {
   const [reloadKey, setReloadKey] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState<number>(10);
+  const [viewedArticle, setViewedArticle] = useState<Article | null>(null);
+  const [editedArticle, setEditedArticle] = useState<Article | null>(null);
+  const [editFocusTarget, setEditFocusTarget] =
+    useState<ArticleEditFocusTarget | null>(null);
+  const [imagePreviewArticle, setImagePreviewArticle] =
+    useState<Article | null>(null);
+  const [articleDetailsReturnId, setArticleDetailsReturnId] = useState<
+    string | null
+  >(null);
+  const [articleToDelete, setArticleToDelete] = useState<Article | null>(null);
+  const [isDeletingArticle, setIsDeletingArticle] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -90,6 +125,10 @@ export function ArticlesAdminList() {
           getArticles(activeSiteId),
           getCategories(activeSiteId),
         ]);
+        const articleTags = await getArticleTagsByArticleIds({
+          articleIds: articleData.map((article) => article.id),
+          siteId: activeSiteId,
+        });
 
         if (!isMounted) {
           return;
@@ -97,6 +136,7 @@ export function ArticlesAdminList() {
 
         setArticles(articleData);
         setCategories(categoryData);
+        setArticleTagsById(articleTags);
         setLoadState("success");
       } catch (error) {
         if (!isMounted) {
@@ -141,7 +181,11 @@ export function ArticlesAdminList() {
           article.title,
           article.slug,
           article.summary,
+          article.content,
+          article.meta_title,
+          article.meta_description,
           article.category_id ? categoryNameById.get(article.category_id) : null,
+          getArticleTagsLabel(article, articleTagsById),
         ]
           .filter(Boolean)
           .join(" ")
@@ -160,10 +204,18 @@ export function ArticlesAdminList() {
               secondArticle,
               sortState,
               categoryNameById,
+              articleTagsById,
             )
           : 0,
       );
-  }, [articles, categoryNameById, searchQuery, sortState, statusFilter]);
+  }, [
+    articleTagsById,
+    articles,
+    categoryNameById,
+    searchQuery,
+    sortState,
+    statusFilter,
+  ]);
 
   const totalPages = Math.max(
     1,
@@ -203,6 +255,73 @@ export function ArticlesAdminList() {
 
       return null;
     });
+  }
+
+  async function handleDeleteArticle() {
+    if (!articleToDelete) {
+      return;
+    }
+
+    setIsDeletingArticle(true);
+    setToastMessage(null);
+
+    try {
+      await deleteArticleForSite({
+        article: articleToDelete,
+        siteId: activeSiteId,
+      });
+      setArticleToDelete(null);
+      setReloadKey((key) => key + 1);
+      setToastMessage({
+        status: "success",
+        text: "Article supprimé avec succès.",
+      });
+    } catch (error) {
+      setToastMessage({
+        status: "error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "Impossible de supprimer l'article.",
+      });
+    } finally {
+      setIsDeletingArticle(false);
+    }
+  }
+
+  async function handleToggleArticleStatus(article: Article) {
+    const nextStatus = article.status === "published" ? "draft" : "published";
+
+    setToastMessage(null);
+
+    try {
+      const updatedArticle = await updateArticleStatus({
+        article,
+        siteId: activeSiteId,
+        status: nextStatus,
+      });
+
+      setArticles((currentArticles) =>
+        currentArticles.map((currentArticle) =>
+          currentArticle.id === updatedArticle.id ? updatedArticle : currentArticle,
+        ),
+      );
+      setToastMessage({
+        status: "success",
+        text:
+          nextStatus === "published"
+            ? "Article publié avec succès."
+            : "Article repasse en brouillon.",
+      });
+    } catch (error) {
+      setToastMessage({
+        status: "error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "Impossible de modifier le statut de l'article.",
+      });
+    }
   }
 
   return (
@@ -310,9 +429,23 @@ export function ArticlesAdminList() {
         {loadState === "success" && filteredArticles.length > 0 ? (
           <ArticlesTable
             articles={paginatedArticles}
+            articleTagsById={articleTagsById}
             categoryNameById={categoryNameById}
             sortState={sortState}
+            onDeleteArticle={setArticleToDelete}
+            onEditArticle={(article) => {
+              setEditFocusTarget(null);
+              setEditedArticle(article);
+            }}
+            onPreviewImage={(article) => {
+              setArticleDetailsReturnId(null);
+              setImagePreviewArticle(article);
+            }}
             onSort={handleSort}
+            onToggleArticleStatus={(article) => {
+              void handleToggleArticleStatus(article);
+            }}
+            onViewArticle={setViewedArticle}
           />
         ) : null}
       </div>
@@ -341,6 +474,89 @@ export function ArticlesAdminList() {
         }}
         onClose={() => setIsCreateDrawerOpen(false)}
       />
+
+      <ArticleDetailsDialog
+        article={viewedArticle}
+        categoryName={
+          viewedArticle?.category_id
+            ? categoryNameById.get(viewedArticle.category_id) ?? null
+            : null
+        }
+        tags={
+          viewedArticle ? (articleTagsById.get(viewedArticle.id) ?? []) : []
+        }
+        onPreviewImage={(article) => {
+          setArticleDetailsReturnId(article.id);
+          setImagePreviewArticle(article);
+          setViewedArticle(null);
+        }}
+        onEditField={(field) => {
+          if (!viewedArticle) {
+            return;
+          }
+
+          setEditedArticle(viewedArticle);
+          setEditFocusTarget(field);
+          setViewedArticle(null);
+        }}
+        onClose={() => setViewedArticle(null)}
+      />
+
+      <ArticleEditDrawer
+        article={editedArticle}
+        articleTags={
+          editedArticle ? (articleTagsById.get(editedArticle.id) ?? []) : []
+        }
+        focusTarget={editFocusTarget}
+        isOpen={Boolean(editedArticle)}
+        onArticleUpdated={(message) => {
+          setReloadKey((key) => key + 1);
+          setToastMessage(message);
+        }}
+        onClose={() => {
+          setEditedArticle(null);
+          setEditFocusTarget(null);
+        }}
+      />
+
+      <ArticleImageDialog
+        article={imagePreviewArticle}
+        onClose={() => {
+          const articleToReopen = articleDetailsReturnId
+            ? (articles.find((article) => article.id === articleDetailsReturnId) ??
+              imagePreviewArticle)
+            : null;
+
+          setImagePreviewArticle(null);
+          setArticleDetailsReturnId(null);
+
+          if (articleToReopen) {
+            setViewedArticle(articleToReopen);
+          }
+        }}
+      />
+
+      <ConfirmDialog
+        cancelLabel="Annuler"
+        confirmLabel={isDeletingArticle ? "Suppression..." : "Supprimer"}
+        isDanger
+        isOpen={Boolean(articleToDelete)}
+        title="Supprimer cet article ?"
+        onCancel={() => {
+          if (!isDeletingArticle) {
+            setArticleToDelete(null);
+          }
+        }}
+        onConfirm={() => {
+          if (!isDeletingArticle) {
+            void handleDeleteArticle();
+          }
+        }}
+      >
+        Cette action supprimera l'article
+        {articleToDelete ? ` "${articleToDelete.title}"` : ""} et ses tags
+        associés.
+      </ConfirmDialog>
     </section>
   );
 }
@@ -420,107 +636,178 @@ function ItemsPerPageControl({
 
 function ArticlesTable({
   articles,
+  articleTagsById,
   categoryNameById,
   sortState,
+  onDeleteArticle,
+  onEditArticle,
+  onPreviewImage,
   onSort,
+  onToggleArticleStatus,
+  onViewArticle,
 }: {
   articles: Article[];
+  articleTagsById: Map<string, Tag[]>;
   categoryNameById: Map<string, string>;
   sortState: SortState;
+  onDeleteArticle: (article: Article) => void;
+  onEditArticle: (article: Article) => void;
+  onPreviewImage: (article: Article) => void;
   onSort: (column: SortColumn) => void;
+  onToggleArticleStatus: (article: Article) => void;
+  onViewArticle: (article: Article) => void;
 }) {
   return (
     <div className="w-full overflow-x-auto">
-      <table className="w-full min-w-[1120px] table-fixed border-collapse text-left text-sm">
+      <table className="w-full min-w-[1540px] table-fixed border-collapse text-left text-sm">
         <thead className="border-b border-stone-200 bg-stone-50 text-xs font-semibold uppercase text-stone-500 dark:border-[#2d2e30] dark:bg-[#111213] dark:text-stone-400">
           <tr>
             <SortableTableHeader
               column="title"
               label="Titre"
-              className="w-[32%]"
+              className="w-[22%]"
+              sortState={sortState}
+              onSort={onSort}
+            />
+            <SortableTableHeader
+              column="summary"
+              label="Résumé"
+              className="w-[18%]"
               sortState={sortState}
               onSort={onSort}
             />
             <SortableTableHeader
               column="category"
-              label="Categorie"
-              className="w-[13%]"
+              label="Catégorie"
+              className="w-[10%]"
+              sortState={sortState}
+              onSort={onSort}
+            />
+            <SortableTableHeader
+              column="tags"
+              label="Tags"
+              className="w-[12%]"
               sortState={sortState}
               onSort={onSort}
             />
             <SortableTableHeader
               column="status"
               label="Statut"
-              className="w-[10%]"
+              className="w-[8%]"
               sortState={sortState}
               onSort={onSort}
             />
             <SortableTableHeader
               column="published_at"
               label="Publication"
-              className="w-[13%]"
+              className="w-[10%]"
+              sortState={sortState}
+              onSort={onSort}
+            />
+            <SortableTableHeader
+              column="seo"
+              label="SEO"
+              className="w-[9%]"
+              sortState={sortState}
+              onSort={onSort}
+            />
+            <SortableTableHeader
+              column="image"
+              label="Image"
+              className="w-[7%]"
               sortState={sortState}
               onSort={onSort}
             />
             <SortableTableHeader
               column="updated_at"
               label="Modification"
-              className="w-[13%]"
+              className="w-[9%]"
               sortState={sortState}
               onSort={onSort}
             />
-            <SortableTableHeader
-              column="updated_by"
-              label="Modifie par"
-              className="w-[10%]"
-              sortState={sortState}
-              onSort={onSort}
-            />
-            <th className="w-[9%] px-4 py-3 text-right">Actions</th>
+            <th className="w-[10%] px-4 py-3 text-right">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-stone-200 dark:divide-[#2d2e30]">
-          {articles.map((article) => (
-            <tr
-              key={article.id}
-              className="text-stone-700 dark:text-stone-300"
-            >
-              <td className="px-4 py-4">
-                <div className="font-semibold text-stone-950 dark:text-white">
-                  {article.title}
-                </div>
-                <div className="mt-1 truncate text-xs text-stone-500 dark:text-stone-500">
-                  /{article.slug}
-                </div>
-              </td>
-              <td className="px-4 py-4">
-                <EmptyValueFallback
-                  value={
-                    article.category_id
-                      ? categoryNameById.get(article.category_id) ?? null
-                      : null
-                  }
-                />
-              </td>
-              <td className="px-4 py-4">
-                <ArticleStatusBadge status={article.status} />
-              </td>
-              <td className="px-4 py-4">
-                {formatDate(article.published_at)}
-              </td>
-              <td className="px-4 py-4">{formatDate(article.updated_at)}</td>
-              <td className="px-4 py-4">
-                <EmptyValueFallback value={formatUserId(article.updated_by)} />
-              </td>
-              <td className="px-4 py-4">
-                <div className="flex justify-end gap-2">
-                  <DisabledActionButton label="Voir" icon={Eye} />
-                  <DisabledActionButton label="Modifier" icon={Pencil} />
-                  <DisabledActionButton label="Supprimer" icon={Trash2} />
-                </div>
-              </td>
-            </tr>
-          ))}
+          {articles.map((article) => {
+            const articleTags = articleTagsById.get(article.id) ?? [];
+
+            return (
+              <tr
+                key={article.id}
+                className="text-stone-700 dark:text-stone-300"
+              >
+                <td className="px-4 py-4">
+                  <button
+                    type="button"
+                    onClick={() => onViewArticle(article)}
+                    className="group relative grid w-full cursor-pointer gap-1 rounded-md pr-24 text-left outline-none transition-colors hover:text-[#f44336] focus-visible:text-[#f44336] dark:hover:text-[#ff8a3d] dark:focus-visible:text-[#ff8a3d]"
+                  >
+                    <span className="font-semibold text-stone-950 transition-colors group-hover:text-[#f44336] group-focus-visible:text-[#f44336] dark:text-white dark:group-hover:text-[#ff8a3d] dark:group-focus-visible:text-[#ff8a3d]">
+                      {article.title}
+                    </span>
+                    <SlugTooltip slug={article.slug} />
+                    <span className="absolute right-0 top-0 inline-flex h-7 w-7 items-center justify-center rounded-md border border-stone-200 bg-white text-stone-500 opacity-0 shadow-sm transition-[opacity,color] group-hover:text-[#f44336] group-hover:opacity-100 group-focus-visible:text-[#f44336] group-focus-visible:opacity-100 dark:border-[#2d2e30] dark:bg-[#111213] dark:text-stone-400 dark:group-hover:text-[#ff8a3d] dark:group-focus-visible:text-[#ff8a3d]">
+                      <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                      <span className="sr-only">Voir l'article</span>
+                    </span>
+                  </button>
+                </td>
+                <td className="px-4 py-4">
+                  <p className="line-clamp-2 text-sm text-stone-600 dark:text-stone-300">
+                    {article.summary}
+                  </p>
+                </td>
+                <td className="px-4 py-4">
+                  <EmptyValueFallback
+                    value={
+                      article.category_id
+                        ? categoryNameById.get(article.category_id) ?? null
+                        : null
+                    }
+                  />
+                </td>
+                <td className="px-4 py-4">
+                  <ArticleTagsCell tags={articleTags} />
+                </td>
+                <td className="px-4 py-4">
+                  <ArticleStatusBadge status={article.status} />
+                </td>
+                <td className="px-4 py-4">
+                  {formatNullableDate(article.published_at)}
+                </td>
+                <td className="px-4 py-4">
+                  <SeoStatus article={article} />
+                </td>
+                <td className="px-4 py-4">
+                  <ImageCell
+                    article={article}
+                    onPreviewImage={onPreviewImage}
+                  />
+                </td>
+                <td className="px-4 py-4">{formatDate(article.updated_at)}</td>
+                <td className="px-4 py-4">
+                  <div className="flex justify-end gap-2">
+                    <StatusToggleButton
+                      article={article}
+                      onToggleArticleStatus={onToggleArticleStatus}
+                    />
+                    <ArticleActionButton
+                      label="Modifier"
+                      icon={Pencil}
+                      onClick={() => onEditArticle(article)}
+                    />
+                    <ArticleActionButton
+                      label="Supprimer"
+                      icon={Trash2}
+                      isDanger
+                      onClick={() => onDeleteArticle(article)}
+                    />
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -582,11 +869,246 @@ function ArticleStatusBadge({ status }: { status: ArticleStatus }) {
         "inline-flex rounded-full px-2 py-1 text-xs font-semibold",
         isPublished
           ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"
-          : "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300",
+          : "bg-orange-50 text-orange-700 dark:bg-orange-500/10 dark:text-orange-300",
       ].join(" ")}
     >
       {statusLabels[status]}
     </span>
+  );
+}
+
+function ArticleTagsCell({ tags }: { tags: Tag[] }) {
+  if (tags.length === 0) {
+    return <EmptyValueFallback value={null} />;
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {tags.slice(0, 3).map((tag) => (
+        <span
+          key={tag.id}
+          className="rounded-full border border-[#ffc2b8] bg-[#ffe7e2] px-2 py-0.5 text-xs font-semibold text-[#9f2119] dark:border-[#7a3329] dark:bg-[#3a211c] dark:text-[#ffb199]"
+        >
+          {tag.name}
+        </span>
+      ))}
+      {tags.length > 3 ? (
+        <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs font-semibold text-stone-500 dark:bg-[#24262a] dark:text-stone-400">
+          +{tags.length - 3}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+function SeoStatus({ article }: { article: Article }) {
+  const hasMetaTitle = Boolean(article.meta_title?.trim());
+  const hasMetaDescription = Boolean(article.meta_description?.trim());
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      <SeoBadge
+        isDefined={hasMetaTitle}
+        label="Title"
+        tooltip={hasMetaTitle ? `Meta title : ${article.meta_title}` : null}
+      />
+      <SeoBadge
+        isDefined={hasMetaDescription}
+        label="Desc"
+        tooltip={
+          hasMetaDescription
+            ? `Meta description : ${article.meta_description}`
+            : null
+        }
+      />
+    </div>
+  );
+}
+
+function SeoBadge({
+  isDefined,
+  label,
+  tooltip,
+}: {
+  isDefined: boolean;
+  label: string;
+  tooltip: string | null;
+}) {
+  const badgeRef = useRef<HTMLSpanElement | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState<{
+    left: number;
+    placement: "top" | "bottom";
+    top: number;
+  } | null>(null);
+
+  function showTooltip() {
+    if (!tooltip) {
+      return;
+    }
+
+    const badgeElement = badgeRef.current;
+
+    if (!badgeElement) {
+      return;
+    }
+
+    const badgeRect = badgeElement.getBoundingClientRect();
+    const tooltipWidth = 288;
+    const viewportPadding = 12;
+    const left = Math.min(
+      Math.max(
+        badgeRect.left + badgeRect.width / 2,
+        viewportPadding + tooltipWidth / 2,
+      ),
+      window.innerWidth - viewportPadding - tooltipWidth / 2,
+    );
+    setTooltipPosition({
+      left,
+      placement: "top",
+      top: badgeRect.top - 8,
+    });
+  }
+
+  return (
+    <>
+      <span
+        ref={badgeRef}
+        onMouseEnter={showTooltip}
+        onMouseLeave={() => setTooltipPosition(null)}
+        className={[
+          "cursor-default rounded-full border px-2 py-0.5 text-xs font-semibold",
+          isDefined
+            ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-300"
+            : "border-stone-200 bg-stone-50 text-stone-400 dark:border-[#2d2e30] dark:bg-[#111213] dark:text-stone-500",
+        ].join(" ")}
+      >
+        {label}
+      </span>
+
+      {tooltipPosition
+        ? createPortal(
+            <span
+              className="pointer-events-none fixed z-[10001] w-72 rounded-lg border border-[#ffb199]/50 bg-[#2a1815] px-3 py-2 text-xs font-semibold text-[#ffe7e2] opacity-100 shadow-2xl shadow-black/30"
+              style={{
+                left: tooltipPosition.left,
+                top: tooltipPosition.top,
+                transform:
+                  tooltipPosition.placement === "top"
+                    ? "translate(-50%, -100%)"
+                    : "translate(-50%, 0)",
+              }}
+            >
+              {tooltip}
+            </span>,
+            document.body,
+          )
+        : null}
+    </>
+  );
+}
+
+function SlugTooltip({ slug }: { slug: string }) {
+  const slugRef = useRef<HTMLSpanElement | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState<{
+    left: number;
+    top: number;
+  } | null>(null);
+
+  function showTooltip() {
+    const slugElement = slugRef.current;
+
+    if (!slugElement) {
+      return;
+    }
+
+    if (slugElement.scrollWidth <= slugElement.clientWidth) {
+      return;
+    }
+
+    const slugRect = slugElement.getBoundingClientRect();
+    const tooltipWidth = 320;
+    const viewportPadding = 12;
+    const left = Math.min(
+      Math.max(
+        slugRect.left + slugRect.width / 2,
+        viewportPadding + tooltipWidth / 2,
+      ),
+      window.innerWidth - viewportPadding - tooltipWidth / 2,
+    );
+
+    setTooltipPosition({
+      left,
+      top: slugRect.top - 8,
+    });
+  }
+
+  return (
+    <>
+      <span
+        ref={slugRef}
+        onMouseEnter={showTooltip}
+        onMouseLeave={() => setTooltipPosition(null)}
+        className="truncate text-xs text-stone-500 dark:text-stone-500"
+      >
+        /{slug}
+      </span>
+
+      {tooltipPosition
+        ? createPortal(
+            <span
+              className="pointer-events-none fixed z-[10001] max-w-80 rounded-lg border border-[#ffb199]/50 bg-[#2a1815] px-3 py-2 text-xs font-semibold text-[#ffe7e2] shadow-2xl shadow-black/30"
+              style={{
+                left: tooltipPosition.left,
+                top: tooltipPosition.top,
+                transform: "translate(-50%, -100%)",
+              }}
+            >
+              /{slug}
+            </span>,
+            document.body,
+          )
+        : null}
+    </>
+  );
+}
+
+function ImageCell({
+  article,
+  onPreviewImage,
+}: {
+  article: Article;
+  onPreviewImage: (article: Article) => void;
+}) {
+  if (!article.cover_image_url) {
+    return <EmptyValueFallback value={null} />;
+  }
+
+  return (
+    <ArticleImagePreviewLabel
+      alt={article.cover_image_alt}
+      imagePath={article.cover_image_url}
+      onClick={() => onPreviewImage(article)}
+    />
+  );
+}
+
+function StatusToggleButton({
+  article,
+  onToggleArticleStatus,
+}: {
+  article: Article;
+  onToggleArticleStatus: (article: Article) => void;
+}) {
+  const isPublished = article.status === "published";
+  const Icon = isPublished ? Eye : EyeOff;
+  const label = isPublished ? "Repasser en brouillon" : "Publier";
+
+  return (
+    <ArticleActionButton
+      label={label}
+      icon={Icon}
+      onClick={() => onToggleArticleStatus(article)}
+    />
   );
 }
 
@@ -598,19 +1120,28 @@ function EmptyValueFallback({ value }: { value: string | null }) {
   return value;
 }
 
-function DisabledActionButton({
+function ArticleActionButton({
+  isDanger = false,
   label,
   icon: Icon,
+  onClick,
 }: {
+  isDanger?: boolean;
   label: string;
-  icon: typeof Eye;
+  icon: LucideIcon;
+  onClick: () => void;
 }) {
   return (
     <button
       type="button"
-      disabled
-      className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-stone-200 bg-stone-50 text-stone-400 dark:border-[#2d2e30] dark:bg-[#111213] dark:text-stone-600"
-      title={`${label} - indisponible`}
+      onClick={onClick}
+      className={[
+        "inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border transition-colors",
+        isDanger
+          ? "border-red-200 bg-red-50 text-[#f44336] hover:bg-red-100 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20"
+          : "border-stone-200 bg-stone-50 text-stone-500 hover:bg-stone-100 hover:text-stone-950 dark:border-[#2d2e30] dark:bg-[#111213] dark:text-stone-400 dark:hover:bg-[#18191b] dark:hover:text-white",
+      ].join(" ")}
+      title={label}
     >
       <Icon className="h-4 w-4" aria-hidden="true" />
       <span className="sr-only">{label}</span>
@@ -654,7 +1185,7 @@ function ArticlesEmptyState({ title }: { title: string }) {
           {title}
         </p>
         <p className="mt-2 max-w-md text-sm text-stone-500 dark:text-stone-400">
-          Les articles apparaitront ici lorsque Supabase retournera des donnees.
+          Les articles apparaîtront ici lorsque Supabase retournera des données.
         </p>
       </div>
     </div>
@@ -663,7 +1194,7 @@ function ArticlesEmptyState({ title }: { title: string }) {
 
 function formatDate(value: string | null) {
   if (!value) {
-    return "Non publié";
+    return "-";
   }
 
   const date = new Date(value);
@@ -677,8 +1208,8 @@ function formatDate(value: string | null) {
   }).format(date);
 }
 
-function formatUserId(value: string | null) {
-  return value ? value.slice(0, 8) : "";
+function formatNullableDate(value: string | null) {
+  return value ? formatDate(value) : "Non publié";
 }
 
 function compareArticles(
@@ -686,17 +1217,20 @@ function compareArticles(
   secondArticle: Article,
   sortState: ActiveSortState,
   categoryNameById: Map<string, string>,
+  articleTagsById: Map<string, Tag[]>,
 ) {
   const directionMultiplier = sortState.direction === "asc" ? 1 : -1;
   const firstValue = getSortableValue(
     firstArticle,
     sortState.column,
     categoryNameById,
+    articleTagsById,
   );
   const secondValue = getSortableValue(
     secondArticle,
     sortState.column,
     categoryNameById,
+    articleTagsById,
   );
 
   if (firstValue < secondValue) {
@@ -714,15 +1248,12 @@ function getSortableValue(
   article: Article,
   column: SortColumn,
   categoryNameById: Map<string, string>,
+  articleTagsById: Map<string, Tag[]>,
 ) {
   if (column === "published_at" || column === "updated_at") {
     const value = article[column];
 
     return value ? new Date(value).getTime() : 0;
-  }
-
-  if (column === "updated_by") {
-    return formatUserId(article.updated_by).toLowerCase();
   }
 
   if (column === "category") {
@@ -731,5 +1262,29 @@ function getSortableValue(
       : "";
   }
 
+  if (column === "tags") {
+    return getArticleTagsLabel(article, articleTagsById).toLowerCase();
+  }
+
+  if (column === "seo") {
+    return [article.meta_title, article.meta_description]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+  }
+
+  if (column === "image") {
+    return article.cover_image_url ? 1 : 0;
+  }
+
   return String(article[column] ?? "").toLowerCase();
+}
+
+function getArticleTagsLabel(
+  article: Article,
+  articleTagsById: Map<string, Tag[]>,
+) {
+  return (articleTagsById.get(article.id) ?? [])
+    .map((tag) => tag.name)
+    .join(" ");
 }

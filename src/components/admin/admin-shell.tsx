@@ -433,7 +433,7 @@ export function AdminShell({
         <aside
           className={[
             "hidden shrink-0 bg-white px-4 py-6 transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] dark:bg-[#141517] lg:flex lg:flex-col",
-            isSidebarCollapsed ? "w-[84px]" : "w-80",
+            isSidebarCollapsed ? "w-[84px]" : "w-72",
             isSidebarCollapsed ? "overflow-visible" : "overflow-hidden",
           ].join(" ")}
         >
@@ -484,6 +484,12 @@ export function AdminShell({
                 icon={Settings}
                 isActive={isProfileActive}
                 isCollapsed={isSidebarCollapsed}
+                collapsedItems={profileSubsections.map((section) => ({
+                  icon: section.icon,
+                  isActive: activeSectionId === section.id,
+                  label: section.label,
+                  onClick: () => setActiveSectionId(section.id),
+                }))}
                 isDropdownOpen={isProfileMenuOpen}
                 isLabelVisible={areSidebarLabelsVisible}
                 label="Mon profil"
@@ -676,6 +682,7 @@ function getUserInitials(value: string) {
 }
 
 function SidebarButton({
+  collapsedItems,
   icon: Icon,
   isActive,
   isCollapsed = false,
@@ -685,6 +692,12 @@ function SidebarButton({
   label,
   onClick,
 }: {
+  collapsedItems?: Array<{
+    icon: typeof FileText;
+    isActive: boolean;
+    label: string;
+    onClick: () => void;
+  }>;
   icon: typeof FileText;
   isActive: boolean;
   isCollapsed?: boolean;
@@ -695,48 +708,144 @@ function SidebarButton({
   onClick: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
+    <div
       className={[
-        "group relative flex items-center rounded-md text-left font-medium transition-colors",
-        isCompact ? "h-10 gap-3 px-3 text-sm" : "h-12 gap-4 px-4 text-sm",
-        isActive
-          ? "bg-red-50 text-stone-950 dark:bg-[#24262a] dark:text-white"
-          : "text-stone-600 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-300 dark:hover:bg-[#18191b] dark:hover:text-white",
+        "group relative",
         isCollapsed ? "w-full overflow-visible" : "w-full overflow-hidden",
-        "cursor-pointer",
       ].join(" ")}
-      aria-current={isActive ? "page" : undefined}
-      title={label}
     >
-      <Icon
+      <button
+        type="button"
+        onClick={onClick}
         className={[
-          isCompact ? "h-4 w-4" : "h-5 w-5",
-          "shrink-0",
+          "flex w-full cursor-pointer items-center rounded-md text-left font-medium transition-colors",
+          isCompact ? "h-10 gap-3 px-3 text-sm" : "h-12 gap-4 px-4 text-sm",
           isActive
-            ? "text-[#f44336] dark:text-[#ff8a3d]"
-            : "text-stone-700 dark:text-[#ff8a3d]",
+            ? "bg-red-50 text-stone-950 dark:bg-[#24262a] dark:text-white"
+            : "text-stone-600 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-300 dark:hover:bg-[#18191b] dark:hover:text-white",
+          isCollapsed ? "overflow-visible" : "overflow-hidden",
         ].join(" ")}
-        aria-hidden="true"
-      />
-      <span
-        className={[
-          "min-w-0 flex-1 truncate whitespace-nowrap transition-opacity duration-150 ease-out",
-          isLabelVisible ? "opacity-100" : "opacity-0",
-        ].join(" ")}
+        aria-current={isActive ? "page" : undefined}
+        aria-label={label}
       >
-        {label}
-      </span>
-      {typeof isDropdownOpen === "boolean" && isLabelVisible ? (
-        <ChevronDown
+        <Icon
           className={[
-            "h-4 w-4 shrink-0 text-stone-500 transition-transform duration-200 dark:text-stone-400",
-            isDropdownOpen ? "rotate-180" : "",
+            isCompact ? "h-4 w-4" : "h-5 w-5",
+            "shrink-0",
+            isActive
+              ? "text-[#f44336] dark:text-[#ff8a3d]"
+              : "text-stone-700 dark:text-[#ff8a3d]",
           ].join(" ")}
           aria-hidden="true"
         />
+        <span
+          className={[
+            "min-w-0 flex-1 truncate whitespace-nowrap transition-opacity duration-150 ease-out",
+            isLabelVisible ? "opacity-100" : "opacity-0",
+          ].join(" ")}
+        >
+          {label}
+        </span>
+        {typeof isDropdownOpen === "boolean" && isLabelVisible ? (
+          <ChevronDown
+            className={[
+              "h-4 w-4 shrink-0 text-stone-500 transition-transform duration-200 dark:text-stone-400",
+              isDropdownOpen ? "rotate-180" : "",
+            ].join(" ")}
+            aria-hidden="true"
+          />
+        ) : null}
+      </button>
+      {isCollapsed ? (
+        <CollapsedSidebarTooltip
+          isActive={isActive}
+          items={collapsedItems}
+          label={label}
+          onClick={onClick}
+        />
       ) : null}
-    </button>
+    </div>
+  );
+}
+
+function CollapsedSidebarTooltip({
+  isActive,
+  items,
+  label,
+  onClick,
+}: {
+  isActive: boolean;
+  items?: Array<{
+    icon: typeof FileText;
+    isActive: boolean;
+    label: string;
+    onClick: () => void;
+  }>;
+  label: string;
+  onClick: () => void;
+}) {
+  const hasItems = Boolean(items?.length);
+
+  return (
+    <div
+      className={[
+        "absolute left-[calc(100%+0.85rem)] z-50 translate-x-1 opacity-0 shadow-2xl transition-[opacity,transform] duration-150 ease-out before:absolute before:bottom-0 before:left-[-0.9rem] before:top-0 before:w-[0.9rem] before:content-[''] group-hover:translate-x-0 group-hover:opacity-100",
+        hasItems ? "top-0" : "top-1/2 -translate-y-1/2",
+        "pointer-events-none group-hover:pointer-events-auto",
+      ].join(" ")}
+    >
+      <div
+        className={[
+          "relative min-w-36 rounded-xl border border-[#f44336]/25 bg-white px-3.5 py-2 text-sm font-bold text-stone-950 shadow-[#7f1d16]/15 ring-1 ring-[#f44336]/10 before:absolute before:left-[-5px] before:h-2.5 before:w-2.5 before:-translate-y-1/2 before:rotate-45 before:border-b before:border-l before:border-[#f44336]/25 before:bg-white dark:border-[#ff8a3d]/35 dark:bg-[#141517] dark:text-stone-100 dark:shadow-black/45 dark:ring-[#ff8a3d]/10 dark:before:border-[#ff8a3d]/35 dark:before:bg-[#141517]",
+          hasItems ? "before:top-6" : "before:top-1/2",
+        ].join(" ")}
+      >
+        {hasItems ? (
+          <div
+            className={[
+              "flex min-h-7 w-full items-center whitespace-nowrap rounded-md text-left",
+              isActive ? "text-[#f44336] dark:text-[#ff8a3d]" : "",
+            ].join(" ")}
+          >
+            {label}
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={onClick}
+            className={[
+              "flex min-h-7 w-full cursor-pointer items-center whitespace-nowrap rounded-md text-left transition-colors hover:text-[#f44336] dark:hover:text-[#ff8a3d]",
+              isActive ? "text-[#f44336] dark:text-[#ff8a3d]" : "",
+            ].join(" ")}
+          >
+            {label}
+          </button>
+        )}
+        {hasItems ? (
+          <div className="mt-2 grid gap-1 border-t border-stone-200 pt-2 dark:border-[#5a342b]">
+            {items?.map((item) => {
+              const ItemIcon = item.icon;
+
+              return (
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={item.onClick}
+                  className={[
+                    "flex h-9 min-w-48 cursor-pointer items-center gap-2 rounded-lg px-2.5 text-left text-xs font-semibold transition-colors",
+                    item.isActive
+                      ? "text-[#f44336] dark:text-[#ff8a3d]"
+                      : "text-stone-600 hover:text-[#f44336] dark:text-[#ffe7e2]/80 dark:hover:text-[#ff8a3d]",
+                  ].join(" ")}
+                >
+                  <ItemIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span className="whitespace-nowrap">{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+      </div>
+    </div>
   );
 }

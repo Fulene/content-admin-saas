@@ -10,7 +10,7 @@ export const articleCreateSchema = z.object({
       /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
       "Le slug doit contenir des lettres minuscules, chiffres et tirets.",
     ),
-  summary: z.string().trim(),
+  summary: z.string().trim().min(1, "Résumé obligatoire."),
   content: z.string().trim().min(1, "Contenu obligatoire."),
   categoryId: z.string().uuid().nullable(),
   tagIds: z.array(z.string().uuid()),

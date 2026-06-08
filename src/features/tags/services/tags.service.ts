@@ -53,13 +53,15 @@ export async function createTag({
   try {
     const { createClient } = await import("@/lib/supabase/client");
     const supabase = createClient();
+    const normalizedName = normalizeTagName(name);
+    const normalizedSlug = slug.trim().toLowerCase();
 
     const { data, error } = await supabase
       .from("tags")
       .insert({
         site_id: siteId,
-        name,
-        slug,
+        name: normalizedName,
+        slug: normalizedSlug,
       })
       .select(TAGS_SELECT)
       .single();
@@ -95,10 +97,12 @@ export async function updateTag({
 }): Promise<Tag> {
   const { createClient } = await import("@/lib/supabase/client");
   const supabase = createClient();
+  const normalizedName = normalizeTagName(name);
+  const normalizedSlug = slug.trim().toLowerCase();
 
   const { data, error } = await supabase
     .from("tags")
-    .update({ name, slug })
+    .update({ name: normalizedName, slug: normalizedSlug })
     .eq("site_id", siteId)
     .eq("id", id)
     .select(TAGS_SELECT)
@@ -129,4 +133,8 @@ export async function deleteTagForSite({
   if (error) {
     throw new Error(error.message);
   }
+}
+
+function normalizeTagName(value: string) {
+  return value.trim().toLowerCase();
 }

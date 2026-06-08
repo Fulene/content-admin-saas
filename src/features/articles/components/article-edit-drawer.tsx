@@ -1,20 +1,28 @@
 "use client";
 
-import { type AnimationEvent, useEffect, useMemo, useState } from "react";
-import { ImagePlus, Loader2, Plus, Send, X } from "lucide-react";
+import {
+  type AnimationEvent,
+  type RefObject,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { ImagePlus, Loader2, Save, X } from "lucide-react";
 import { ZodError } from "zod";
 import { ConfirmDialog } from "@/components/dialogs/confirm-dialog";
 import {
   ToastMessage,
   type ToastMessageState,
 } from "@/components/feedback/toast-message";
-import { CreatableDropdown } from "@/components/forms/creatable-dropdown";
 import { CreatableChipCombobox } from "@/components/forms/creatable-chip-combobox";
+import { CreatableDropdown } from "@/components/forms/creatable-dropdown";
 import {
   articleCreateSchema,
   type ArticleCreateValues,
 } from "@/features/articles/schemas/article-create.schema";
-import { createArticleWithTags } from "@/features/articles/services/articles.service";
+import { updateArticleWithTags } from "@/features/articles/services/articles.service";
+import type { Article } from "@/features/articles/types/article";
 import {
   createCategory,
   getCategories,
@@ -25,6 +33,17 @@ import { createTag, getTags } from "@/features/tags/services/tags.service";
 import type { Tag } from "@/features/tags/types/tag";
 
 type DrawerState = "idle" | "loading" | "success" | "error";
+export type ArticleEditFocusTarget =
+  | "category"
+  | "content"
+  | "coverImage"
+  | "coverImageAlt"
+  | "metaDescription"
+  | "metaTitle"
+  | "slug"
+  | "summary"
+  | "tags"
+  | "title";
 
 const EMPTY_VALUES: ArticleCreateValues = {
   title: "",
@@ -38,13 +57,19 @@ const EMPTY_VALUES: ArticleCreateValues = {
   metaDescription: null,
 };
 
-export function ArticleCreateDrawer({
+export function ArticleEditDrawer({
+  article,
+  articleTags,
+  focusTarget,
   isOpen,
-  onArticleCreated,
+  onArticleUpdated,
   onClose,
 }: {
+  article: Article | null;
+  articleTags: Tag[];
+  focusTarget: ArticleEditFocusTarget | null;
   isOpen: boolean;
-  onArticleCreated: (message: ToastMessageState) => void;
+  onArticleUpdated: (message: ToastMessageState) => void;
   onClose: () => void;
 }) {
   const { activeSiteId } = useActiveSite();
@@ -53,7 +78,7 @@ export function ArticleCreateDrawer({
   const [coverImagePreviewUrl, setCoverImagePreviewUrl] = useState<
     string | null
   >(null);
-  const [hasSlugBeenEdited, setHasSlugBeenEdited] = useState(false);
+  const [hasSlugBeenEdited, setHasSlugBeenEdited] = useState(true);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [drawerState, setDrawerState] = useState<DrawerState>("idle");
@@ -62,20 +87,45 @@ export function ArticleCreateDrawer({
   const [isDiscardDialogOpen, setIsDiscardDialogOpen] = useState(false);
   const [isDrawerMounted, setIsDrawerMounted] = useState(isOpen);
   const [isClosing, setIsClosing] = useState(false);
+  const [mountedArticle, setMountedArticle] = useState<Article | null>(article);
+  const [mountedArticleTags, setMountedArticleTags] =
+    useState<Tag[]>(articleTags);
+  const titleInputRef = useRef<HTMLInputElement | null>(null);
+  const slugInputRef = useRef<HTMLInputElement | null>(null);
+  const summaryTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const contentTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const categoryFieldRef = useRef<HTMLDivElement | null>(null);
+  const tagsFieldRef = useRef<HTMLDivElement | null>(null);
+  const metaTitleInputRef = useRef<HTMLInputElement | null>(null);
+  const metaDescriptionTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const coverImageInputRef = useRef<HTMLInputElement | null>(null);
+  const coverImageAltInputRef = useRef<HTMLInputElement | null>(null);
+  const currentArticle = article ?? mountedArticle;
+  const currentArticleTags = article ? articleTags : mountedArticleTags;
+
+  const initialValues = useMemo<ArticleCreateValues>(
+    () =>
+      currentArticle
+        ? {
+            title: currentArticle.title,
+            slug: currentArticle.slug,
+            summary: currentArticle.summary,
+            content: currentArticle.content,
+            categoryId: currentArticle.category_id,
+            tagIds: currentArticleTags.map((tag) => tag.id),
+            coverImageAlt: currentArticle.cover_image_alt,
+            metaTitle: currentArticle.meta_title,
+            metaDescription: currentArticle.meta_description,
+          }
+        : EMPTY_VALUES,
+    [currentArticle, currentArticleTags],
+  );
 
   const isDirty = useMemo(
     () =>
-      values.title.trim().length > 0 ||
-      values.slug.trim().length > 0 ||
-      values.summary.trim().length > 0 ||
-      values.content.trim().length > 0 ||
-      values.categoryId !== null ||
-      values.tagIds.length > 0 ||
-      values.coverImageAlt !== null ||
-      values.metaTitle !== null ||
-      values.metaDescription !== null ||
+      JSON.stringify(values) !== JSON.stringify(initialValues) ||
       coverImageFile !== null,
-    [coverImageFile, values],
+    [coverImageFile, initialValues, values],
   );
 
   useEffect(() => {
@@ -89,6 +139,28 @@ export function ArticleCreateDrawer({
       setIsClosing(true);
     }
   }, [isDrawerMounted, isOpen]);
+
+  useEffect(() => {
+    if (!article) {
+      return;
+    }
+
+    setMountedArticle(article);
+    setMountedArticleTags(articleTags);
+  }, [article, articleTags]);
+
+  useEffect(() => {
+    if (!isOpen || !currentArticle) {
+      return;
+    }
+
+    setValues(initialValues);
+    setCoverImageFile(null);
+    setCoverImagePreviewUrl(null);
+    setHasSlugBeenEdited(true);
+    setErrorMessage(null);
+    setDrawerState("idle");
+  }, [currentArticle, initialValues, isOpen]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -149,11 +221,34 @@ export function ArticleCreateDrawer({
     };
   }, [coverImageFile]);
 
+  useEffect(() => {
+    if (!isOpen || !currentArticle || !focusTarget) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      focusEditTarget(focusTarget, {
+        categoryFieldRef,
+        contentTextareaRef,
+        coverImageAltInputRef,
+        coverImageInputRef,
+        metaDescriptionTextareaRef,
+        metaTitleInputRef,
+        slugInputRef,
+        summaryTextareaRef,
+        tagsFieldRef,
+        titleInputRef,
+      });
+    }, 380);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [currentArticle, focusTarget, isOpen]);
+
   function resetForm() {
     setValues(EMPTY_VALUES);
     setCoverImageFile(null);
     setCoverImagePreviewUrl(null);
-    setHasSlugBeenEdited(false);
+    setHasSlugBeenEdited(true);
     setErrorMessage(null);
     setDrawerState("idle");
   }
@@ -246,13 +341,18 @@ export function ArticleCreateDrawer({
   }
 
   async function handleSubmit(status: "draft" | "published") {
+    if (!currentArticle) {
+      return;
+    }
+
     setDrawerState("loading");
     setErrorMessage(null);
 
     try {
       const parsedValues = articleCreateSchema.parse(values);
 
-      await createArticleWithTags({
+      await updateArticleWithTags({
+        articleId: currentArticle.id,
         siteId: activeSiteId,
         status,
         categoryId: parsedValues.categoryId,
@@ -261,19 +361,19 @@ export function ArticleCreateDrawer({
         summary: parsedValues.summary,
         content: parsedValues.content,
         coverImageFile,
+        currentCoverImageUrl: currentArticle.cover_image_url,
+        currentTagIds: currentArticleTags.map((tag) => tag.id),
         coverImageAlt: normalizeOptionalText(parsedValues.coverImageAlt),
         metaTitle: normalizeOptionalText(parsedValues.metaTitle),
         metaDescription: normalizeOptionalText(parsedValues.metaDescription),
+        publishedAt: currentArticle.published_at,
         tagIds: parsedValues.tagIds,
       });
 
       setDrawerState("success");
-      onArticleCreated({
+      onArticleUpdated({
         status: "success",
-        text:
-          status === "published"
-            ? "Article publié avec succès."
-            : "Brouillon créé avec succès.",
+        text: "Article enregistré avec succès.",
       });
       onClose();
     } catch (error) {
@@ -287,12 +387,12 @@ export function ArticleCreateDrawer({
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : "Impossible de créer l'article.",
+          : "Impossible de modifier l'article.",
       );
     }
   }
 
-  if (!isDrawerMounted) {
+  if (!isDrawerMounted || !currentArticle) {
     return null;
   }
 
@@ -334,7 +434,7 @@ export function ArticleCreateDrawer({
               Article
             </p>
             <h2 className="mt-1 text-xl font-bold text-stone-950 dark:text-white">
-              Nouvel article
+              Modifier l'article
             </h2>
           </div>
           <button
@@ -354,6 +454,7 @@ export function ArticleCreateDrawer({
                 label="Titre"
                 value={values.title}
                 required
+                inputRef={titleInputRef}
                 onChange={updateTitle}
               />
 
@@ -361,6 +462,7 @@ export function ArticleCreateDrawer({
                 label="Slug"
                 value={values.slug}
                 required
+                inputRef={slugInputRef}
                 onChange={(slug) => {
                   setHasSlugBeenEdited(true);
                   setValues((currentValues) => ({
@@ -374,6 +476,7 @@ export function ArticleCreateDrawer({
                 label="Résumé"
                 value={values.summary}
                 required
+                inputRef={summaryTextareaRef}
                 rows={3}
                 onChange={(summary) =>
                   setValues((currentValues) => ({
@@ -387,6 +490,7 @@ export function ArticleCreateDrawer({
                 label="Contenu"
                 value={values.content}
                 required
+                inputRef={contentTextareaRef}
                 rows={9}
                 onChange={(content) =>
                   setValues((currentValues) => ({
@@ -396,50 +500,55 @@ export function ArticleCreateDrawer({
                 }
               />
 
-              <CreatableDropdown
-                createLabel="Creer la categorie"
-                disabled={metadataState === "loading"}
-                emptyLabel="Aucune categorie disponible."
-                label="Catégorie"
-                options={categories.map((category) => ({
-                  id: category.id,
-                  label: category.name,
-                }))}
-                placeholder="Taper pour rechercher ou créer"
-                value={values.categoryId}
-                onChange={(categoryId) =>
-                  setValues((currentValues) => ({
-                    ...currentValues,
-                    categoryId,
-                  }))
-                }
-                onCreate={handleCreateCategory}
-                onCreateError={setErrorMessage}
-              />
+              <div ref={categoryFieldRef}>
+                <CreatableDropdown
+                  createLabel="Creer la categorie"
+                  disabled={metadataState === "loading"}
+                  emptyLabel="Aucune categorie disponible."
+                  label="Catégorie"
+                  options={categories.map((category) => ({
+                    id: category.id,
+                    label: category.name,
+                  }))}
+                  placeholder="Taper pour rechercher ou créer"
+                  value={values.categoryId}
+                  onChange={(categoryId) =>
+                    setValues((currentValues) => ({
+                      ...currentValues,
+                      categoryId,
+                    }))
+                  }
+                  onCreate={handleCreateCategory}
+                  onCreateError={setErrorMessage}
+                />
+              </div>
 
-              <CreatableChipCombobox
-                createLabel="Creer le tag"
-                disabled={metadataState === "loading"}
-                emptyLabel="Aucun tag disponible."
-                label="Tags"
-                options={tags.map((tag) => ({
-                  id: tag.id,
-                  label: tag.name,
-                }))}
-                value={values.tagIds}
-                onChange={(tagIds) =>
-                  setValues((currentValues) => ({
-                    ...currentValues,
-                    tagIds,
-                  }))
-                }
-                onCreate={handleCreateTag}
-                onCreateError={setErrorMessage}
-              />
+              <div ref={tagsFieldRef}>
+                <CreatableChipCombobox
+                  createLabel="Creer le tag"
+                  disabled={metadataState === "loading"}
+                  emptyLabel="Aucun tag disponible."
+                  label="Tags"
+                  options={tags.map((tag) => ({
+                    id: tag.id,
+                    label: tag.name,
+                  }))}
+                  value={values.tagIds}
+                  onChange={(tagIds) =>
+                    setValues((currentValues) => ({
+                      ...currentValues,
+                      tagIds,
+                    }))
+                  }
+                  onCreate={handleCreateTag}
+                  onCreateError={setErrorMessage}
+                />
+              </div>
 
               <TextField
                 label="Meta title"
                 value={values.metaTitle ?? ""}
+                inputRef={metaTitleInputRef}
                 onChange={(metaTitle) =>
                   setValues((currentValues) => ({
                     ...currentValues,
@@ -451,6 +560,7 @@ export function ArticleCreateDrawer({
               <TextAreaField
                 label="Meta description"
                 value={values.metaDescription ?? ""}
+                inputRef={metaDescriptionTextareaRef}
                 rows={3}
                 onChange={(metaDescription) =>
                   setValues((currentValues) => ({
@@ -470,7 +580,9 @@ export function ArticleCreateDrawer({
                       Image de couverture
                     </p>
                     <p className="text-xs text-stone-500 dark:text-stone-400">
-                      Upload au moment de la creation.
+                      {currentArticle.cover_image_url
+                        ? "Image actuelle conservee si aucun fichier n'est choisi."
+                        : "Aucune image actuelle."}
                     </p>
                   </div>
                 </div>
@@ -485,6 +597,7 @@ export function ArticleCreateDrawer({
                 ) : null}
 
                 <input
+                  ref={coverImageInputRef}
                   type="file"
                   accept="image/*"
                   onChange={(event) =>
@@ -496,6 +609,7 @@ export function ArticleCreateDrawer({
                 <TextField
                   label="Texte alternatif image (attribut alt)"
                   value={values.coverImageAlt ?? ""}
+                  inputRef={coverImageAltInputRef}
                   onChange={(coverImageAlt) =>
                     setValues((currentValues) => ({
                       ...currentValues,
@@ -520,7 +634,7 @@ export function ArticleCreateDrawer({
               type="button"
               disabled={drawerState === "loading" || metadataState !== "success"}
               onClick={() => {
-                void handleSubmit("draft");
+                void handleSubmit(currentArticle.status);
               }}
               className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-md bg-[#f44336] px-4 text-sm font-semibold text-white hover:bg-[#d7382d] disabled:cursor-default disabled:opacity-60 dark:bg-[#ff8a3d] dark:text-stone-950 dark:hover:bg-[#ff7920]"
             >
@@ -530,27 +644,9 @@ export function ArticleCreateDrawer({
                   aria-hidden="true"
                 />
               ) : (
-                <Plus className="h-4 w-4" aria-hidden="true" />
+                <Save className="h-4 w-4" aria-hidden="true" />
               )}
-              Creer le brouillon
-            </button>
-            <button
-              type="button"
-              disabled={drawerState === "loading" || metadataState !== "success"}
-              onClick={() => {
-                void handleSubmit("published");
-              }}
-              className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-md bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-default disabled:opacity-60"
-            >
-              {drawerState === "loading" ? (
-                <Loader2
-                  className="h-4 w-4 animate-spin"
-                  aria-hidden="true"
-                />
-              ) : (
-                <Send className="h-4 w-4" aria-hidden="true" />
-              )}
-              Publier l'article
+              Enregistrer
             </button>
           </footer>
         </form>
@@ -558,25 +654,27 @@ export function ArticleCreateDrawer({
 
       <ConfirmDialog
         cancelLabel="Continuer l'edition"
-        confirmLabel="Fermer sans créer"
+        confirmLabel="Fermer sans enregistrer"
         isDanger
         isOpen={isDiscardDialogOpen}
-        title="Abandonner la creation ?"
+        title="Abandonner les modifications ?"
         onCancel={() => setIsDiscardDialogOpen(false)}
         onConfirm={confirmClose}
       >
-        Les informations saisies dans ce formulaire seront perdues.
+        Les modifications non enregistrées seront perdues.
       </ConfirmDialog>
     </div>
   );
 }
 
 function TextField({
+  inputRef,
   label,
   onChange,
   required = false,
   value,
 }: {
+  inputRef?: RefObject<HTMLInputElement | null>;
   label: string;
   onChange: (value: string) => void;
   required?: boolean;
@@ -589,6 +687,7 @@ function TextField({
         {required ? <span className="text-[#f44336]"> *</span> : null}
       </span>
       <input
+        ref={inputRef}
         type="text"
         value={value}
         required={required}
@@ -600,12 +699,14 @@ function TextField({
 }
 
 function TextAreaField({
+  inputRef,
   label,
   onChange,
   required = false,
   rows,
   value,
 }: {
+  inputRef?: RefObject<HTMLTextAreaElement | null>;
   label: string;
   onChange: (value: string) => void;
   required?: boolean;
@@ -619,6 +720,7 @@ function TextAreaField({
         {required ? <span className="text-[#f44336]"> *</span> : null}
       </span>
       <textarea
+        ref={inputRef}
         value={value}
         required={required}
         rows={rows}
@@ -627,6 +729,57 @@ function TextAreaField({
       />
     </label>
   );
+}
+
+function focusEditTarget(
+  target: ArticleEditFocusTarget,
+  refs: {
+    categoryFieldRef: RefObject<HTMLDivElement | null>;
+    contentTextareaRef: RefObject<HTMLTextAreaElement | null>;
+    coverImageAltInputRef: RefObject<HTMLInputElement | null>;
+    coverImageInputRef: RefObject<HTMLInputElement | null>;
+    metaDescriptionTextareaRef: RefObject<HTMLTextAreaElement | null>;
+    metaTitleInputRef: RefObject<HTMLInputElement | null>;
+    slugInputRef: RefObject<HTMLInputElement | null>;
+    summaryTextareaRef: RefObject<HTMLTextAreaElement | null>;
+    tagsFieldRef: RefObject<HTMLDivElement | null>;
+    titleInputRef: RefObject<HTMLInputElement | null>;
+  },
+) {
+  const targetElementByName: Record<
+    ArticleEditFocusTarget,
+    HTMLElement | null
+  > = {
+    category: refs.categoryFieldRef.current,
+    content: refs.contentTextareaRef.current,
+    coverImage: refs.coverImageInputRef.current,
+    coverImageAlt: refs.coverImageAltInputRef.current,
+    metaDescription: refs.metaDescriptionTextareaRef.current,
+    metaTitle: refs.metaTitleInputRef.current,
+    slug: refs.slugInputRef.current,
+    summary: refs.summaryTextareaRef.current,
+    tags: refs.tagsFieldRef.current,
+    title: refs.titleInputRef.current,
+  };
+  const targetElement = targetElementByName[target];
+
+  if (!targetElement) {
+    return;
+  }
+
+  targetElement.scrollIntoView({ block: "center", behavior: "smooth" });
+
+  window.setTimeout(() => {
+    const focusableElement =
+      targetElement instanceof HTMLInputElement ||
+      targetElement instanceof HTMLTextAreaElement
+        ? targetElement
+        : targetElement.querySelector<HTMLElement>(
+            "input, textarea, button:not(:disabled)",
+          );
+
+    focusableElement?.focus();
+  }, 220);
 }
 
 function normalizeOptionalText(value: string | null) {
