@@ -474,5 +474,9 @@ function validateInvitationPassword(
 }
 
 function getRoleDisplayLabel(role: { code: string; label: string }) {
-  return role.code === "OWNER" ? "Admin" : role.label;
+  return isAdminRoleCode(role.code) ? "Admin" : role.label;
+}
+
+function isAdminRoleCode(code: string | null | undefined) {
+  return code?.toUpperCase() === "ADMIN";
 }

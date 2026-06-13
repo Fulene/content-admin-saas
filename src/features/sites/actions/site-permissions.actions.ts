@@ -53,7 +53,11 @@ export async function getCurrentSitePermissionsAction({
   const roleCode = role?.code.toUpperCase() ?? "";
 
   return {
-    canManageContent: roleCode === "OWNER" || roleCode === "EDITOR",
-    canManageUsers: roleCode === "OWNER",
+    canManageContent: isAdminRoleCode(roleCode) || roleCode === "EDITOR",
+    canManageUsers: isAdminRoleCode(roleCode),
   };
+}
+
+function isAdminRoleCode(code: string | null | undefined) {
+  return code?.toUpperCase() === "ADMIN";
 }

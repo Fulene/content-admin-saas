@@ -42,7 +42,7 @@ import { useActiveSite } from "@/features/sites/components/active-site-provider"
 
 const ITEMS_PER_PAGE_OPTIONS = [5, 10, 20, 50] as const;
 const ROLE_ORDER_BY_CODE: Record<string, number> = {
-  OWNER: 0,
+  ADMIN: 0,
   EDITOR: 1,
   VIEWER: 2,
 };
@@ -130,23 +130,23 @@ export function MembersAdminSection({
       })),
     [orderedRoles],
   );
-  const ownerRoleId = useMemo(
-    () => roles.find((role) => role.code === "OWNER")?.id ?? null,
+  const adminRoleId = useMemo(
+    () => roles.find((role) => isAdminRoleCode(role.code))?.id ?? null,
     [roles],
   );
-  const ownerCount = useMemo(
+  const adminCount = useMemo(
     () =>
-      ownerRoleId
-        ? members.filter((member) => member.role_id === ownerRoleId).length
+      adminRoleId
+        ? members.filter((member) => member.role_id === adminRoleId).length
         : 0,
-    [members, ownerRoleId],
+    [members, adminRoleId],
   );
   const currentMember = useMemo(
     () => members.find((member) => member.user_id === currentUserId) ?? null,
     [currentUserId, members],
   );
   const canManageMembers =
-    currentMember?.roles?.code.toUpperCase() === "OWNER";
+    isAdminRoleCode(currentMember?.roles?.code);
 
   useEffect(() => {
     if (canManageInvitations !== canManageMembers) {
@@ -277,7 +277,7 @@ export function MembersAdminSection({
       const nextCurrentMember =
         memberData.find((member) => member.user_id === currentUserId) ?? null;
       const nextCanManageInvitations =
-        nextCurrentMember?.roles?.code.toUpperCase() === "OWNER";
+        isAdminRoleCode(nextCurrentMember?.roles?.code);
 
       onCanManageInvitationsChange(nextCanManageInvitations);
       setMembers(memberData);
@@ -306,10 +306,10 @@ export function MembersAdminSection({
     }
 
     if (
-      ownerRoleId &&
-      member.role_id === ownerRoleId &&
-      nextRoleId !== ownerRoleId &&
-      ownerCount <= 1
+      adminRoleId &&
+      member.role_id === adminRoleId &&
+      nextRoleId !== adminRoleId &&
+      adminCount <= 1
     ) {
       setMessage({
         status: "error",
@@ -538,10 +538,10 @@ export function MembersAdminSection({
               const displayName = getMemberDisplayName(member);
               const memberEmail = member.email ?? displayName;
               const isCurrentUser = member.user_id === currentUserId;
-              const isOwner = ownerRoleId
-                ? member.role_id === ownerRoleId
+              const isAdmin = adminRoleId
+                ? member.role_id === adminRoleId
                 : false;
-              const isLastOwner = isOwner && ownerCount <= 1;
+              const isLastAdmin = isAdmin && adminCount <= 1;
 
               return (
                 <div
@@ -590,9 +590,9 @@ export function MembersAdminSection({
                     <button
                       type="button"
                       onClick={() => setPendingRemoval(member)}
-                      disabled={isCurrentUser || isLastOwner}
+                      disabled={isCurrentUser || isLastAdmin}
                       title={
-                        isLastOwner
+                        isLastAdmin
                           ? "Impossible de retirer le dernier admin"
                           : undefined
                       }
@@ -1252,7 +1252,11 @@ function getMemberInitials(member: SiteMember) {
 }
 
 function getRoleDisplayLabel(role: Role) {
-  return role.code === "OWNER" ? "Admin" : role.label;
+  return isAdminRoleCode(role.code) ? "Admin" : role.label;
+}
+
+function isAdminRoleCode(code: string | null | undefined) {
+  return code?.toUpperCase() === "ADMIN";
 }
 
 function getInviteEmailError(email: string) {

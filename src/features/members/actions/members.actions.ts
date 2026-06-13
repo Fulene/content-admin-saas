@@ -64,7 +64,7 @@ export async function canManageSiteInvitationsAction({
   const roles = data?.roles;
   const role = Array.isArray(roles) ? roles[0] : roles;
 
-  return role?.code?.toUpperCase() === "OWNER";
+  return isAdminRoleCode(role?.code);
 }
 
 export async function createSiteInvitationAction({
@@ -443,4 +443,8 @@ function isEmailAlreadyRegisteredMessage(message: string) {
 
 function isEmailNotConfirmedMessage(message: string) {
   return message.toLowerCase().includes("email not confirmed");
+}
+
+function isAdminRoleCode(code: string | null | undefined) {
+  return code?.toUpperCase() === "ADMIN";
 }
