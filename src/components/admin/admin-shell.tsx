@@ -41,7 +41,7 @@ type AdminSectionId =
   | "profile-security";
 type ThemeMode = "light" | "dark" | "forest";
 
-const ACTIVE_SITE_STORAGE_PREFIX = "blog-admin-kit-active-site";
+const ACTIVE_SITE_STORAGE_PREFIX = "content-admin-saas-active-site";
 const themeOptions = [
   { id: "light", label: "Clair" },
   { id: "dark", label: "Sombre" },
@@ -207,7 +207,7 @@ export function AdminShell({
   useEffect(() => {
     setIsMounted(true);
 
-    const storedTheme = window.localStorage.getItem("blog-admin-kit-theme");
+    const storedTheme = window.localStorage.getItem("content-admin-saas-theme");
 
     if (
       storedTheme === "dark" ||
@@ -227,7 +227,7 @@ export function AdminShell({
       "theme-forest",
       themeMode === "forest",
     );
-    window.localStorage.setItem("blog-admin-kit-theme", themeMode);
+    window.localStorage.setItem("content-admin-saas-theme", themeMode);
   }, [themeMode]);
 
   useEffect(() => {
@@ -537,7 +537,7 @@ export function AdminShell({
           <div className="flex min-w-0 items-center gap-24">
             <div className="min-w-0">
               <p className="text-base font-bold text-[#f44336] dark:text-[#ff8a3d] lg:text-lg">
-                Blog Admin Kit
+                content-admin-saas
               </p>
               <p className="text-xs text-stone-500 dark:text-stone-300 lg:text-sm">
                 Backoffice
@@ -918,7 +918,7 @@ function NoSitesState() {
     <main className="flex min-h-screen items-center justify-center bg-stone-50 px-5 py-10 text-stone-950 dark:bg-[#090b0b] dark:text-stone-50">
       <section className="w-full max-w-md rounded-lg border border-stone-200 bg-white p-6 text-center shadow-sm dark:border-[#2d2e30] dark:bg-[#141517]">
         <p className="text-base font-bold text-[#f44336] dark:text-[#ff8a3d]">
-          Blog Admin Kit
+          content-admin-saas
         </p>
         <h1 className="mt-3 text-2xl font-bold">Aucun site disponible</h1>
         <p className="mt-3 text-sm text-stone-500 dark:text-stone-300">

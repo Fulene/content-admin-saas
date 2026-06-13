@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import type { Site } from "@/features/sites/types/site";
 
-const ACTIVE_SITE_STORAGE_PREFIX = "blog-admin-kit-active-site";
+const ACTIVE_SITE_STORAGE_PREFIX = "content-admin-saas-active-site";
 
 export function SiteSelectionPage({
   sites,
@@ -24,7 +24,7 @@ export function SiteSelectionPage({
       <main className="flex min-h-screen items-center justify-center bg-stone-50 px-5 py-10 text-stone-950 dark:bg-[#090b0b] dark:text-stone-50">
         <section className="w-full max-w-md rounded-lg border border-stone-200 bg-white p-6 text-center shadow-sm dark:border-[#2d2e30] dark:bg-[#141517]">
           <p className="text-base font-bold text-[#f44336] dark:text-[#ff8a3d]">
-            Blog Admin Kit
+            content-admin-saas
           </p>
           <h1 className="mt-3 text-2xl font-bold">Aucun site disponible</h1>
           <p className="mt-3 text-sm text-stone-500 dark:text-stone-300">
@@ -40,7 +40,7 @@ export function SiteSelectionPage({
       <section className="w-full max-w-xl">
         <div className="mb-6">
           <p className="text-base font-bold text-[#f44336] dark:text-[#ff8a3d]">
-            Blog Admin Kit
+            content-admin-saas
           </p>
           <h1 className="mt-2 text-2xl font-bold">Choisir un site</h1>
           <p className="mt-2 text-sm text-stone-500 dark:text-stone-300">

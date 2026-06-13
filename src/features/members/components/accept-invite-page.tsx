@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -117,7 +117,7 @@ export function AcceptInvitePage({
       <section className="mx-auto my-auto w-full max-w-lg">
         <div className="mb-5">
           <p className="text-base font-bold text-[#ff8a3d]">
-            Blog Admin Kit
+            content-admin-saas
           </p>
           {!shouldShowAuthForm ? (
             <>

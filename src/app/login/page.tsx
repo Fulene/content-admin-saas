@@ -4,7 +4,7 @@ import { LoginForm } from "@/features/auth/components/login-form";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
-  title: "Connexion admin - Blog Admin Kit",
+  title: "Connexion admin - content-admin-saas",
 };
 
 export default async function LoginPage() {
@@ -20,7 +20,7 @@ export default async function LoginPage() {
       <section className="w-full max-w-sm">
         <div className="mb-8">
           <p className="text-base font-bold text-[#f44336] dark:text-[#ff8a3d]">
-            Blog Admin Kit
+            content-admin-saas
           </p>
           <h1 className="mt-2 text-2xl font-bold text-stone-950 dark:text-white">
             Connexion admin

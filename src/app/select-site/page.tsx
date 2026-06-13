@@ -5,7 +5,7 @@ import { getAccessibleSitesForCurrentUser } from "@/features/sites/services/site
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
-  title: "Selection du site - Blog Admin Kit",
+  title: "Selection du site - content-admin-saas",
 };
 
 export default async function SelectSitePage() {

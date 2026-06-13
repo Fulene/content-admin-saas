@@ -2,7 +2,7 @@
 
 ## Rôle du projet
 
-`blog-admin-kit` est un socle technique réutilisable pour ajouter ultérieurement une administration de blog à plusieurs landing pages Next.js.
+`content-admin-saas` est un socle technique réutilisable pour ajouter ultérieurement une administration de blog à plusieurs landing pages Next.js.
 
 Le projet ne doit pas contenir de fonctionnalité métier tant que celle-ci n'est pas explicitement demandée.
 

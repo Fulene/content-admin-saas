@@ -2,13 +2,15 @@
 
 import {
   type AnimationEvent,
+  type ChangeEvent,
+  type DragEvent,
   type RefObject,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
-import { ImagePlus, Loader2, Save, X } from "lucide-react";
+import { Loader2, Save, UploadCloud, X } from "lucide-react";
 import { ZodError } from "zod";
 import { ConfirmDialog } from "@/components/dialogs/confirm-dialog";
 import {
@@ -21,7 +23,11 @@ import {
   articleCreateSchema,
   type ArticleCreateValues,
 } from "@/features/articles/schemas/article-create.schema";
-import { updateArticleWithTags } from "@/features/articles/services/articles.service";
+import {
+  createArticleImageDisplayUrl,
+  updateArticleWithTags,
+} from "@/features/articles/services/articles.service";
+import { getArticleImageName } from "@/features/articles/components/article-image-preview-label";
 import type { Article } from "@/features/articles/types/article";
 import {
   createCategory,
@@ -78,6 +84,9 @@ export function ArticleEditDrawer({
   const [coverImagePreviewUrl, setCoverImagePreviewUrl] = useState<
     string | null
   >(null);
+  const [isCoverImageDragActive, setIsCoverImageDragActive] = useState(false);
+  const [currentCoverImageDisplayUrl, setCurrentCoverImageDisplayUrl] =
+    useState<string | null>(null);
   const [hasSlugBeenEdited, setHasSlugBeenEdited] = useState(true);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
@@ -157,6 +166,7 @@ export function ArticleEditDrawer({
     setValues(initialValues);
     setCoverImageFile(null);
     setCoverImagePreviewUrl(null);
+    setIsCoverImageDragActive(false);
     setHasSlugBeenEdited(true);
     setErrorMessage(null);
     setDrawerState("idle");
@@ -222,6 +232,31 @@ export function ArticleEditDrawer({
   }, [coverImageFile]);
 
   useEffect(() => {
+    if (!isOpen || !currentArticle?.cover_image_url) {
+      setCurrentCoverImageDisplayUrl(null);
+      return;
+    }
+
+    let isMounted = true;
+
+    void createArticleImageDisplayUrl(currentArticle.cover_image_url)
+      .then((displayUrl) => {
+        if (isMounted) {
+          setCurrentCoverImageDisplayUrl(displayUrl);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setCurrentCoverImageDisplayUrl(null);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentArticle?.cover_image_url, isOpen]);
+
+  useEffect(() => {
     if (!isOpen || !currentArticle || !focusTarget) {
       return;
     }
@@ -248,6 +283,7 @@ export function ArticleEditDrawer({
     setValues(EMPTY_VALUES);
     setCoverImageFile(null);
     setCoverImagePreviewUrl(null);
+    setIsCoverImageDragActive(false);
     setHasSlugBeenEdited(true);
     setErrorMessage(null);
     setDrawerState("idle");
@@ -392,6 +428,52 @@ export function ArticleEditDrawer({
     }
   }
 
+  function handleCoverImageInputChange(event: ChangeEvent<HTMLInputElement>) {
+    setCoverImageFile(event.target.files?.[0] ?? null);
+    event.target.value = "";
+  }
+
+  function handleCoverImageDragEnter(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setIsCoverImageDragActive(true);
+  }
+
+  function handleCoverImageDragLeave(event: DragEvent<HTMLDivElement>) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const isStillInside =
+      event.clientX >= rect.left &&
+      event.clientX <= rect.right &&
+      event.clientY >= rect.top &&
+      event.clientY <= rect.bottom;
+
+    if (!isStillInside) {
+      setIsCoverImageDragActive(false);
+    }
+  }
+
+  function handleCoverImageDragOver(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+    setIsCoverImageDragActive(true);
+  }
+
+  function handleCoverImageDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setIsCoverImageDragActive(false);
+    const file = event.dataTransfer.files.item(0);
+
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setErrorMessage("Le fichier déposé doit être une image.");
+      return;
+    }
+
+    setCoverImageFile(file);
+  }
+
   if (!isDrawerMounted || !currentArticle) {
     return null;
   }
@@ -402,6 +484,16 @@ export function ArticleEditDrawer({
   const drawerAnimationClass = isClosing
     ? "article-create-drawer-out"
     : "article-create-drawer-in";
+  const displayedCoverImageUrl =
+    coverImagePreviewUrl ?? currentCoverImageDisplayUrl;
+  const displayedCoverImageName =
+    coverImageFile?.name ??
+    (currentArticle.cover_image_url
+      ? getArticleImageName(
+          currentArticle.cover_image_url,
+          currentArticle.cover_image_alt,
+        )
+      : null);
 
   return (
     <div className="fixed inset-0 z-[9999] flex justify-end overflow-hidden">
@@ -570,10 +662,36 @@ export function ArticleEditDrawer({
                 }
               />
 
-              <div className="grid gap-3 rounded-lg border border-dashed border-stone-300 p-4 dark:border-[#2d2e30]">
+              <div
+                className={[
+                  "relative grid gap-3 overflow-hidden rounded-lg border border-dashed p-4 transition-colors",
+                  isCoverImageDragActive
+                    ? "border-[#f44336] bg-red-50/50 dark:border-[#ff8a3d] dark:bg-[#241812]"
+                    : "border-stone-300 dark:border-[#2d2e30] dark:hover:border-[#ff8a3d]/60",
+                ].join(" ")}
+                onDragEnter={handleCoverImageDragEnter}
+                onDragLeave={handleCoverImageDragLeave}
+                onDragOver={handleCoverImageDragOver}
+                onDrop={handleCoverImageDrop}
+              >
+                {isCoverImageDragActive ? (
+                  <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-white/90 text-center dark:bg-[#141517]/92">
+                    <span className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-[#f44336] text-white shadow-lg shadow-red-500/20 dark:bg-[#ff8a3d] dark:text-stone-950">
+                      <UploadCloud className="h-8 w-8" aria-hidden="true" />
+                    </span>
+                    <span className="text-sm font-bold text-stone-950 dark:text-white">
+                      Dépose l'image ici
+                    </span>
+                    {currentArticle.cover_image_url ? (
+                      <span className="text-xs font-medium text-stone-500 dark:text-stone-400">
+                        Le fichier remplacera l'image de couverture actuelle.
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
                 <div className="flex items-center gap-3">
                   <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-red-50 text-[#f44336] dark:bg-[#24262a] dark:text-[#ff8a3d]">
-                    <ImagePlus className="h-5 w-5" aria-hidden="true" />
+                    <UploadCloud className="h-5 w-5" aria-hidden="true" />
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-stone-800 dark:text-stone-200">
@@ -581,30 +699,41 @@ export function ArticleEditDrawer({
                     </p>
                     <p className="text-xs text-stone-500 dark:text-stone-400">
                       {currentArticle.cover_image_url
-                        ? "Image actuelle conservee si aucun fichier n'est choisi."
-                        : "Aucune image actuelle."}
+                        ? "Image actuelle conservée si aucun nouveau fichier n'est choisi."
+                        : "Dépose une image ici ou utilise le bouton de sélection."}
                     </p>
                   </div>
                 </div>
 
-                {coverImagePreviewUrl ? (
+                {displayedCoverImageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={coverImagePreviewUrl}
-                    alt=""
+                    src={displayedCoverImageUrl}
+                    alt={values.coverImageAlt ?? ""}
                     className="h-40 w-full rounded-md object-cover"
                   />
                 ) : null}
 
-                <input
-                  ref={coverImageInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={(event) =>
-                    setCoverImageFile(event.target.files?.[0] ?? null)
-                  }
-                  className="text-sm text-stone-600 file:mr-3 file:h-9 file:cursor-pointer file:rounded-md file:border-0 file:bg-stone-100 file:px-3 file:text-sm file:font-medium file:text-stone-700 hover:file:bg-stone-200 dark:text-stone-300 dark:file:bg-[#111213] dark:file:text-stone-200 dark:hover:file:bg-[#18191b]"
-                />
+                <p className="text-sm font-medium text-stone-600 dark:text-stone-300">
+                  {displayedCoverImageName ?? "Aucun fichier sélectionné"}
+                </p>
+
+                <div>
+                  <input
+                    ref={coverImageInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCoverImageInputChange}
+                    className="sr-only"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => coverImageInputRef.current?.click()}
+                    className="inline-flex h-10 cursor-pointer items-center justify-center rounded-md border border-stone-200 bg-stone-100 px-4 text-sm font-semibold text-stone-700 transition-colors hover:bg-stone-200 dark:border-[#2d2e30] dark:bg-[#111213] dark:text-stone-200 dark:hover:bg-[#18191b]"
+                  >
+                    Choisir un fichier
+                  </button>
+                </div>
 
                 <TextField
                   label="Texte alternatif image (attribut alt)"

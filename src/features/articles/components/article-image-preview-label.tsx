@@ -29,7 +29,7 @@ export function ArticleImagePreviewLabel({
   );
   const [tooltipPosition, setTooltipPosition] =
     useState<TooltipPosition | null>(null);
-  const imageName = getArticleImageName(imagePath);
+  const imageName = getArticleImageName(imagePath, alt);
 
   async function showPreview() {
     const triggerElement = triggerRef.current;
@@ -140,15 +140,32 @@ export function ArticleImagePreviewLabel({
   );
 }
 
-export function getArticleImageName(imagePath: string) {
+export function getArticleImageName(imagePath: string, fallbackName?: string | null) {
   try {
     const url = new URL(imagePath);
     const filename = url.pathname.split("/").filter(Boolean).at(-1);
 
-    return filename ? decodeURIComponent(filename) : "Image";
+    return getDisplayImageName(filename, fallbackName);
   } catch {
     const filename = imagePath.split("/").filter(Boolean).at(-1);
 
-    return filename ? decodeURIComponent(filename) : "Image";
+    return getDisplayImageName(filename, fallbackName);
   }
+}
+
+function getDisplayImageName(
+  filename: string | null | undefined,
+  fallbackName?: string | null,
+) {
+  if (!filename) {
+    return fallbackName?.trim() || "Image de couverture";
+  }
+
+  const decodedFilename = decodeURIComponent(filename);
+
+  if (/^cover\.[a-z0-9]+$/i.test(decodedFilename)) {
+    return fallbackName?.trim() || "Image de couverture";
+  }
+
+  return decodedFilename;
 }

@@ -59,7 +59,7 @@ export async function createAvatarDisplayUrl(
 
 export function validateAvatarFile(file: File) {
   if (!(ACCEPTED_AVATAR_MIME_TYPES as readonly string[]).includes(file.type)) {
-    throw new Error("Format invalide. Utilisez JPEG, PNG ou WebP.");
+    throw new Error("Format d'image invalide. Utilisez JPEG, PNG ou WebP.");
   }
 
   if (file.size > MAX_AVATAR_SIZE_IN_BYTES) {

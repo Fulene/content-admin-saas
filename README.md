@@ -1,4 +1,4 @@
-# Blog Admin Kit
+# content-admin-saas
 
 ## Description
 

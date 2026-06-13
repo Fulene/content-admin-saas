@@ -64,7 +64,7 @@ export function ArticleImageDialog({
   }
 
   const imageName = article.cover_image_url
-    ? getArticleImageName(article.cover_image_url)
+    ? getArticleImageName(article.cover_image_url, article.cover_image_alt)
     : null;
 
   return createPortal(

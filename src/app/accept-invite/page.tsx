@@ -3,7 +3,7 @@ import { AcceptInvitePage } from "@/features/members/components/accept-invite-pa
 import { getSiteInvitationByToken } from "@/features/members/services/members.server.service";
 
 export const metadata: Metadata = {
-  title: "Invitation - Blog Admin Kit",
+  title: "Invitation - content-admin-saas",
 };
 
 export default async function AcceptInviteRoute({

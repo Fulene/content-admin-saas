@@ -126,6 +126,12 @@ type CreateArticleWithTagsInput = {
 };
 
 const ARTICLE_IMAGES_BUCKET_NAME = "article-images";
+const MAX_ARTICLE_IMAGE_SIZE_IN_BYTES = 5 * 1024 * 1024;
+const ACCEPTED_ARTICLE_IMAGE_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+] as const;
 
 export async function createArticleImageDisplayUrl(path: string | null) {
   if (!path) {
@@ -172,13 +178,9 @@ export async function createArticleWithTags({
 
   try {
     if (coverImageFile) {
-      if (!coverImageFile.type.startsWith("image/")) {
-        throw new Error("Le fichier selectionne doit etre une image.");
-      }
+      validateArticleImageFile(coverImageFile);
 
-      const assetId = crypto.randomUUID();
-      const extension = getFileExtension(coverImageFile.name);
-      const imagePath = `sites/${siteId}/articles/${assetId}/cover.${extension}`;
+      const imagePath = createArticleImageStoragePath(siteId, coverImageFile);
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from(ARTICLE_IMAGES_BUCKET_NAME)
@@ -280,13 +282,9 @@ export async function updateArticleWithTags({
 
   try {
     if (coverImageFile) {
-      if (!coverImageFile.type.startsWith("image/")) {
-        throw new Error("Le fichier selectionne doit etre une image.");
-      }
+      validateArticleImageFile(coverImageFile);
 
-      const assetId = crypto.randomUUID();
-      const extension = getFileExtension(coverImageFile.name);
-      const imagePath = `sites/${siteId}/articles/${assetId}/cover.${extension}`;
+      const imagePath = createArticleImageStoragePath(siteId, coverImageFile);
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from(ARTICLE_IMAGES_BUCKET_NAME)
@@ -464,12 +462,46 @@ async function removeStoredArticleImage(path: string) {
   await supabase.storage.from(ARTICLE_IMAGES_BUCKET_NAME).remove([path]);
 }
 
-function getFileExtension(fileName: string) {
-  const extension = fileName.split(".").pop()?.toLowerCase();
-
-  if (!extension || !/^[a-z0-9]+$/.test(extension)) {
-    return "jpg";
+function validateArticleImageFile(file: File) {
+  if (
+    !(ACCEPTED_ARTICLE_IMAGE_MIME_TYPES as readonly string[]).includes(file.type)
+  ) {
+    throw new Error("Format d'image invalide. Utilisez JPEG, PNG ou WebP.");
   }
 
-  return extension;
+  if (file.size > MAX_ARTICLE_IMAGE_SIZE_IN_BYTES) {
+    throw new Error("L'image ne doit pas depasser 5 MB.");
+  }
+}
+
+function createArticleImageStoragePath(siteId: string, file: File) {
+  const assetId = crypto.randomUUID();
+  const extension = getFileExtensionForMimeType(file.type);
+  const baseName = sanitizeArticleImageBaseName(file.name);
+
+  return `sites/${siteId}/articles/${assetId}/${baseName}.${extension}`;
+}
+
+function sanitizeArticleImageBaseName(fileName: string) {
+  const withoutExtension = fileName.replace(/\.[^.]+$/, "");
+  const normalizedName = withoutExtension
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return normalizedName || "image";
+}
+
+function getFileExtensionForMimeType(mimeType: string) {
+  if (mimeType === "image/png") {
+    return "png";
+  }
+
+  if (mimeType === "image/webp") {
+    return "webp";
+  }
+
+  return "jpg";
 }

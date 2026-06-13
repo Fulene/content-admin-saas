@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Blog Admin Kit",
+  title: "content-admin-saas",
   description: "Reusable technical foundation for a Next.js blog administration kit.",
 };
 
