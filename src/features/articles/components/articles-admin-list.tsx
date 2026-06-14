@@ -334,7 +334,7 @@ export function ArticlesAdminList({
   }
 
   return (
-    <section className="flex min-h-full flex-col gap-5">
+    <section className="flex flex-col gap-5">
       <ToastMessage
         message={toastMessage}
         onClose={() => setToastMessage(null)}
@@ -1156,17 +1156,32 @@ function ArticleActionButton({
   icon: LucideIcon;
   onClick: () => void;
 }) {
+  const className = [
+    "inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border transition-colors",
+    isDanger
+      ? "border-red-200 bg-red-50 text-[#f44336] hover:bg-red-100 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20"
+      : "border-stone-200 bg-stone-50 text-stone-500 hover:bg-stone-100 hover:text-stone-950 dark:border-[#2d2e30] dark:bg-[#111213] dark:text-stone-400 dark:hover:bg-[#18191b] dark:hover:text-white",
+  ].join(" ");
+
+  if (isDanger) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={className}
+        aria-label={label}
+      >
+        <Icon className="h-4 w-4" aria-hidden="true" />
+      </button>
+    );
+  }
+
   return (
     <IconButtonTooltip
       label={label}
       type="button"
       onClick={onClick}
-      className={[
-        "inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border transition-colors",
-        isDanger
-          ? "border-red-200 bg-red-50 text-[#f44336] hover:bg-red-100 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20"
-          : "border-stone-200 bg-stone-50 text-stone-500 hover:bg-stone-100 hover:text-stone-950 dark:border-[#2d2e30] dark:bg-[#111213] dark:text-stone-400 dark:hover:bg-[#18191b] dark:hover:text-white",
-      ].join(" ")}
+      className={className}
     >
       <Icon className="h-4 w-4" aria-hidden="true" />
       <span className="sr-only">{label}</span>

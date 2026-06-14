@@ -361,7 +361,7 @@ export function ArticleCreateDrawer({
     : "article-create-drawer-in";
 
   return (
-    <div className="fixed inset-0 z-[9999] flex justify-end overflow-hidden">
+    <div className="fixed inset-0 z-[9999] flex h-[100dvh] w-[100dvw] justify-end overflow-hidden overscroll-none">
       <ToastMessage
         message={
           errorMessage
@@ -382,7 +382,7 @@ export function ArticleCreateDrawer({
       />
 
       <aside
-        className={`${drawerAnimationClass} relative z-[1] flex h-full max-h-dvh w-full flex-col border-l border-stone-200 bg-white shadow-2xl dark:border-[#2d2e30] dark:bg-[#141517] sm:max-w-none lg:max-w-[50vw] xl:max-w-[860px]`}
+        className={`${drawerAnimationClass} relative z-[1] grid h-[100dvh] max-h-[100dvh] w-full max-w-[100dvw] min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden border-l border-stone-200 bg-white shadow-2xl dark:border-[#2d2e30] dark:bg-[#141517] lg:max-w-[50vw] xl:max-w-[860px]`}
         onAnimationEnd={handleDrawerAnimationEnd}
       >
         <header className="flex shrink-0 items-center justify-between border-b border-stone-200 px-5 py-4 dark:border-[#2d2e30]">
@@ -404,8 +404,8 @@ export function ArticleCreateDrawer({
           </button>
         </header>
 
-        <form className="flex min-h-0 flex-1 flex-col">
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+        <form className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto] overflow-hidden">
+          <div className="min-h-0 overflow-y-auto overscroll-contain px-5 py-5">
             <div className="grid gap-5">
               <TextField
                 label="Titre"
@@ -600,7 +600,7 @@ export function ArticleCreateDrawer({
             </div>
           </div>
 
-          <footer className="sticky bottom-0 flex shrink-0 flex-col-reverse gap-3 border-t border-stone-200 bg-white px-5 py-4 dark:border-[#2d2e30] dark:bg-[#141517] sm:flex-row sm:items-center sm:justify-end">
+          <footer className="flex min-w-0 shrink-0 flex-col-reverse gap-3 border-t border-stone-200 bg-white px-5 py-4 dark:border-[#2d2e30] dark:bg-[#141517] sm:flex-row sm:items-center sm:justify-end">
             <button
               type="button"
               onClick={requestClose}
@@ -633,7 +633,7 @@ export function ArticleCreateDrawer({
               onClick={() => {
                 void handleSubmit("published");
               }}
-              className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-md bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-default disabled:opacity-60"
+              className="inline-flex h-10 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-default disabled:opacity-60 sm:w-auto"
             >
               {drawerState === "loading" ? (
                 <Loader2

@@ -383,7 +383,7 @@ export function AdminShell({
   }
 
   const mobileMenu = (
-    <div className="fixed left-0 top-0 z-[9999] h-dvh w-dvw lg:hidden">
+    <div className="fixed inset-0 z-[9999] h-dvh w-dvw overflow-hidden lg:hidden">
       <button
         type="button"
         onClick={closeMobileMenu}
@@ -399,7 +399,7 @@ export function AdminShell({
       <aside
         className={[
           isMobileMenuClosing ? "mobile-menu-drawer-out" : "mobile-menu-drawer-in",
-          "absolute bottom-0 right-0 top-0 z-[1] flex w-[min(88dvw,360px)] flex-col border-l border-stone-200 bg-white px-5 py-6 shadow-2xl dark:border-[#2d2e30] dark:bg-[#141517]",
+          "absolute inset-y-0 right-0 z-[1] flex h-dvh max-h-dvh min-h-0 w-[min(88dvw,360px)] flex-col overflow-y-auto overscroll-contain border-l border-stone-200 bg-white px-5 py-6 shadow-2xl dark:border-[#2d2e30] dark:bg-[#141517]",
         ].join(" ")}
         onAnimationEnd={finishMobileMenuClose}
       >
@@ -615,7 +615,7 @@ export function AdminShell({
   }
 
   const adminContent = (
-    <main className="h-screen overflow-hidden bg-white text-stone-950 dark:bg-[#090b0b] dark:text-stone-50">
+    <main className="h-dvh min-h-0 overflow-hidden bg-white text-stone-950 dark:bg-[#090b0b] dark:text-stone-50">
       <div className="flex h-full flex-col bg-white dark:bg-[#141517]">
         <header className="flex h-18 shrink-0 items-center justify-between bg-white px-5 dark:bg-[#141517] lg:h-20 lg:px-8">
           <div className="flex min-w-0 items-center gap-24">
@@ -870,8 +870,8 @@ export function AdminShell({
         </aside>
 
         <section className="flex min-h-0 min-w-0 flex-1 flex-col bg-white dark:bg-[#141517]">
-          <div className="flex min-h-0 flex-1 overflow-y-auto border-l border-t border-stone-200 bg-white px-6 pb-12 pt-6 [scrollbar-gutter:stable] dark:border-[#2d2e30] dark:bg-[#090b0b] sm:px-10 sm:pb-14 lg:rounded-tl-[5px]">
-            <div className="min-h-full w-full">
+          <div className="flex min-h-0 flex-1 overflow-y-auto overscroll-contain border-l border-t border-stone-200 bg-white px-6 pb-12 pt-6 [scrollbar-gutter:stable] dark:border-[#2d2e30] dark:bg-[#090b0b] sm:px-10 sm:pb-14 lg:rounded-tl-[5px]">
+            <div className="w-full min-w-0">
               {activeSectionId === "sites-management" && isGlobalAdmin ? (
                 <SitesManagementSection
                   onOpenSite={handleOpenManagedSite}

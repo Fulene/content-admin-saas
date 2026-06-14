@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { type AnimationEvent, useEffect, useMemo, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -417,7 +417,7 @@ export function MembersAdminSection({
   }
 
   return (
-    <section className="flex min-h-full flex-col gap-5">
+    <section className="flex flex-col gap-5">
       <ToastMessage message={message} onClose={() => setMessage(null)} />
 
       {mode === "invitations" && !canManageInvitations ? (
@@ -631,7 +631,7 @@ export function MembersAdminSection({
       ) : null}
         </div>
       ) : (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 pb-8 sm:pb-10">
           <div className="admin-data-toolbar admin-data-toolbar-stacked-tablet flex flex-col gap-3">
             <div className="relative min-w-0">
               <Search
@@ -736,7 +736,7 @@ export function MembersAdminSection({
             <PaginationControls
               currentPage={invitationCurrentPage}
               totalPages={invitationTotalPages}
-              className="mb-4 justify-center"
+              className="justify-center"
               onPageChange={setInvitationCurrentPage}
             />
           ) : null}
@@ -798,6 +798,8 @@ function InviteUserDrawer({
   const [emailTouched, setEmailTouched] = useState(false);
   const [roleId, setRoleId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDrawerMounted, setIsDrawerMounted] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
   const emailError = getInviteEmailError(email);
   const shouldShowEmailError = emailTouched && Boolean(emailError);
   const roleOptions = useMemo(
@@ -810,16 +812,39 @@ function InviteUserDrawer({
   );
 
   useEffect(() => {
-    if (!isOpen) {
+    if (isOpen) {
+      setIsDrawerMounted(true);
+      setIsClosing(false);
+
+      setEmail("");
+      setEmailTouched(false);
+      setRoleId(
+        roles.find((role) => role.code === "EDITOR")?.id ?? roles[0]?.id ?? "",
+      );
       return;
     }
 
-    setEmail("");
-    setEmailTouched(false);
-    setRoleId(
-      roles.find((role) => role.code === "EDITOR")?.id ?? roles[0]?.id ?? "",
-    );
-  }, [isOpen, roles]);
+    if (isDrawerMounted) {
+      setIsClosing(true);
+    }
+  }, [isDrawerMounted, isOpen, roles]);
+
+  function requestClose() {
+    if (isClosing || isSubmitting) {
+      return;
+    }
+
+    onClose();
+  }
+
+  function handleDrawerAnimationEnd(event: AnimationEvent<HTMLElement>) {
+    if (event.target !== event.currentTarget || !isClosing) {
+      return;
+    }
+
+    setIsDrawerMounted(false);
+    setIsClosing(false);
+  }
 
   async function handleSubmit() {
     setEmailTouched(true);
@@ -842,20 +867,30 @@ function InviteUserDrawer({
     }
   }
 
-  if (!isOpen) {
+  if (!isDrawerMounted) {
     return null;
   }
 
+  const backdropAnimationClass = isClosing
+    ? "article-create-drawer-backdrop-out"
+    : "article-create-drawer-backdrop-in";
+  const drawerAnimationClass = isClosing
+    ? "article-create-drawer-out"
+    : "article-create-drawer-in";
+
   return (
-    <div className="fixed inset-0 z-[9999] flex justify-end overflow-hidden">
+    <div className="fixed inset-0 z-[9999] flex h-[100dvh] w-[100dvw] justify-end overflow-hidden overscroll-none">
       <button
         type="button"
-        onClick={onClose}
-        className="article-create-drawer-backdrop-in absolute inset-0 cursor-pointer bg-black/35"
+        onClick={requestClose}
+        className={`${backdropAnimationClass} absolute inset-0 cursor-pointer bg-black/35`}
         aria-label="Fermer le panneau"
       />
 
-      <aside className="article-create-drawer-in relative z-[1] flex h-full max-h-dvh w-full flex-col border-l border-stone-200 bg-white shadow-2xl dark:border-[#2d2e30] dark:bg-[#141517] sm:max-w-none lg:max-w-[520px]">
+      <aside
+        onAnimationEnd={handleDrawerAnimationEnd}
+        className={`${drawerAnimationClass} relative z-[1] grid h-[100dvh] max-h-[100dvh] w-full max-w-[100dvw] min-w-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden border-l border-stone-200 bg-white shadow-2xl dark:border-[#2d2e30] dark:bg-[#141517] sm:max-w-none lg:max-w-[520px]`}
+      >
         <header className="flex shrink-0 items-center justify-between border-b border-stone-200 px-5 py-4 dark:border-[#2d2e30]">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f44336] dark:text-[#ff8a3d]">
@@ -867,7 +902,7 @@ function InviteUserDrawer({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={requestClose}
             className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-stone-100 text-stone-700 hover:bg-stone-200 dark:bg-[#111213] dark:text-stone-300 dark:hover:bg-[#18191b]"
             aria-label="Fermer"
           >
@@ -875,7 +910,7 @@ function InviteUserDrawer({
           </button>
         </header>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-5 py-5">
+        <div className="grid min-h-0 content-start gap-5 overflow-y-auto overscroll-contain px-5 py-5">
           <label className="grid gap-2">
             <span className="text-sm font-semibold text-stone-800 dark:text-stone-200">
               Email <span className="text-[#f44336]">*</span>
@@ -919,10 +954,10 @@ function InviteUserDrawer({
 
         </div>
 
-        <footer className="sticky bottom-0 flex shrink-0 flex-col-reverse gap-3 border-t border-stone-200 bg-white px-5 py-4 dark:border-[#2d2e30] dark:bg-[#141517] sm:flex-row sm:items-center sm:justify-end">
+        <footer className="flex min-w-0 shrink-0 flex-col-reverse gap-3 border-t border-stone-200 bg-white px-5 py-4 dark:border-[#2d2e30] dark:bg-[#141517] sm:flex-row sm:items-center sm:justify-end">
           <button
             type="button"
-            onClick={onClose}
+            onClick={requestClose}
             disabled={isSubmitting}
             className="h-10 w-full cursor-pointer rounded-md px-4 text-sm font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-950 disabled:cursor-default disabled:opacity-60 dark:text-stone-300 dark:hover:bg-[#18191b] dark:hover:text-white sm:w-auto"
           >
@@ -934,7 +969,7 @@ function InviteUserDrawer({
             onClick={() => {
               void handleSubmit();
             }}
-            className="inline-flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-md bg-[#f44336] px-4 text-sm font-semibold text-white hover:bg-[#d7382d] disabled:cursor-default disabled:opacity-60 dark:bg-[#ff8a3d] dark:text-stone-950 dark:hover:bg-[#ff7920] sm:w-auto"
+            className="inline-flex h-10 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-md bg-[#f44336] px-4 text-sm font-semibold text-white hover:bg-[#d7382d] disabled:cursor-default disabled:opacity-60 dark:bg-[#ff8a3d] dark:text-stone-950 dark:hover:bg-[#ff7920] sm:w-auto"
           >
             {isSubmitting ? (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />

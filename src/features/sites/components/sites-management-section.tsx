@@ -1,7 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
+import {
+  type AnimationEvent,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   Ban,
   CheckCircle2,
@@ -228,7 +232,7 @@ export function SitesManagementSection({
   }
 
   return (
-    <section className="flex min-h-full flex-col gap-5">
+    <section className="flex flex-col gap-5">
       <ToastMessage message={message} onClose={() => setMessage(null)} />
 
       <div>
@@ -475,6 +479,8 @@ function SiteFormDrawer({
 }) {
   const [name, setName] = useState(initialName);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDrawerMounted, setIsDrawerMounted] = useState(isOpen);
+  const [isClosing, setIsClosing] = useState(false);
   const trimmedName = name.trim();
   const nameError =
     trimmedName.length === 0
@@ -485,13 +491,38 @@ function SiteFormDrawer({
 
   useEffect(() => {
     if (isOpen) {
+      setIsDrawerMounted(true);
+      setIsClosing(false);
       setName(initialName);
       setIsSubmitting(false);
+      return;
     }
-  }, [initialName, isOpen]);
 
-  if (!isOpen) {
+    if (isDrawerMounted) {
+      setIsClosing(true);
+    }
+  }, [initialName, isDrawerMounted, isOpen]);
+
+  if (!isDrawerMounted) {
     return null;
+  }
+
+  function requestClose() {
+    if (isSubmitting || isClosing) {
+      return;
+    }
+
+    onClose();
+  }
+
+  function handleDrawerAnimationEnd(event: AnimationEvent<HTMLElement>) {
+    if (event.target !== event.currentTarget || !isClosing) {
+      return;
+    }
+
+    setIsDrawerMounted(false);
+    setIsClosing(false);
+    setIsSubmitting(false);
   }
 
   async function handleSubmit() {
@@ -508,15 +539,26 @@ function SiteFormDrawer({
     }
   }
 
-  return createPortal(
-    <div className="fixed inset-0 z-[9999] flex h-dvh w-dvw justify-end">
+  const backdropAnimationClass = isClosing
+    ? "article-create-drawer-backdrop-out"
+    : "article-create-drawer-backdrop-in";
+  const drawerAnimationClass = isClosing
+    ? "article-create-drawer-out"
+    : "article-create-drawer-in";
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex h-[100dvh] w-[100dvw] justify-end overflow-hidden overscroll-none">
       <button
         type="button"
-        onClick={onClose}
-        className="absolute inset-0 cursor-pointer bg-black/45"
-        aria-label="Fermer"
+        onClick={requestClose}
+        className={`${backdropAnimationClass} absolute inset-0 cursor-pointer bg-black/35`}
+        aria-label="Fermer le panneau"
       />
-      <aside className="article-create-drawer-in relative z-[1] flex h-full max-h-dvh w-full flex-col border-l border-stone-200 bg-white shadow-2xl dark:border-[#2d2e30] dark:bg-[#141517] sm:max-w-none lg:max-w-[520px]">
+
+      <aside
+        className={`${drawerAnimationClass} relative z-[1] grid h-[100dvh] max-h-[100dvh] w-full max-w-[100dvw] min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden border-l border-stone-200 bg-white shadow-2xl dark:border-[#2d2e30] dark:bg-[#141517] lg:max-w-[520px]`}
+        onAnimationEnd={handleDrawerAnimationEnd}
+      >
         <header className="flex shrink-0 items-center justify-between border-b border-stone-200 px-5 py-4 dark:border-[#2d2e30]">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f44336] dark:text-[#ff8a3d]">
@@ -528,7 +570,7 @@ function SiteFormDrawer({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={requestClose}
             className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-stone-100 text-stone-700 hover:bg-stone-200 dark:bg-[#111213] dark:text-stone-300 dark:hover:bg-[#18191b]"
             aria-label="Fermer"
           >
@@ -536,64 +578,67 @@ function SiteFormDrawer({
           </button>
         </header>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-5 py-5">
-          <label className="grid gap-2">
-            <span className="text-sm font-semibold text-stone-800 dark:text-stone-200">
-              Nom du site <span className="text-[#f44336]">*</span>
-            </span>
-            <input
-              type="text"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="Nom du site"
-              aria-invalid={Boolean(nameError)}
-              aria-describedby={nameError ? "site-name-error" : undefined}
-              className={[
-                "h-11 rounded-md border bg-white px-3 text-sm text-stone-950 outline-none transition-colors placeholder:text-stone-400 dark:bg-[#111213] dark:text-white dark:placeholder:text-stone-500",
-                nameError
-                  ? "border-[#f44336] focus:border-[#f44336] dark:border-red-400 dark:focus:border-red-400"
-                  : "border-stone-200 focus:border-stone-400 dark:border-[#2d2e30] dark:focus:border-[#ff8a3d]",
-              ].join(" ")}
-            />
-            {nameError ? (
-              <span
-                id="site-name-error"
-                className="text-xs font-medium text-[#f44336] dark:text-red-300"
-              >
-                {nameError}
-              </span>
-            ) : null}
-          </label>
-        </div>
+        <form className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto] overflow-hidden">
+          <div className="min-h-0 overflow-y-auto overscroll-contain px-5 py-5">
+            <div className="grid gap-5">
+              <label className="grid gap-2">
+                <span className="text-sm font-semibold text-stone-800 dark:text-stone-200">
+                  Nom du site <span className="text-[#f44336]">*</span>
+                </span>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder="Nom du site"
+                  aria-invalid={Boolean(nameError)}
+                  aria-describedby={nameError ? "site-name-error" : undefined}
+                  className={[
+                    "h-11 rounded-md border bg-white px-3 text-sm text-stone-950 outline-none transition-colors placeholder:text-stone-400 dark:bg-[#111213] dark:text-white dark:placeholder:text-stone-500",
+                    nameError
+                      ? "border-[#f44336] focus:border-[#f44336] dark:border-red-400 dark:focus:border-red-400"
+                      : "border-stone-200 focus:border-stone-400 dark:border-[#2d2e30] dark:focus:border-[#ff8a3d]",
+                  ].join(" ")}
+                />
+                {nameError ? (
+                  <span
+                    id="site-name-error"
+                    className="text-xs font-medium text-[#f44336] dark:text-red-300"
+                  >
+                    {nameError}
+                  </span>
+                ) : null}
+              </label>
+            </div>
+          </div>
 
-        <footer className="sticky bottom-0 flex shrink-0 flex-col-reverse gap-3 border-t border-stone-200 bg-white px-5 py-4 dark:border-[#2d2e30] dark:bg-[#141517] sm:flex-row sm:items-center sm:justify-end">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isSubmitting}
-            className="h-10 w-full cursor-pointer rounded-md px-4 text-sm font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-950 disabled:cursor-default disabled:opacity-60 dark:text-stone-300 dark:hover:bg-[#18191b] dark:hover:text-white sm:w-auto"
-          >
-            Annuler
-          </button>
-          <button
-            type="button"
-            disabled={Boolean(nameError) || isSubmitting}
-            onClick={() => {
-              void handleSubmit();
-            }}
-            className="inline-flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-md bg-[#f44336] px-4 text-sm font-semibold text-white hover:bg-[#d7382d] disabled:cursor-default disabled:opacity-60 dark:bg-[#ff8a3d] dark:text-stone-950 dark:hover:bg-[#ff7920] sm:w-auto"
-          >
-            {isSubmitting ? (
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-            ) : (
-              <Plus className="h-4 w-4" aria-hidden="true" />
-            )}
-            {mode === "create" ? "Ajouter" : "Enregistrer"}
-          </button>
-        </footer>
+          <footer className="flex min-w-0 shrink-0 flex-col-reverse gap-3 border-t border-stone-200 bg-white px-5 py-4 dark:border-[#2d2e30] dark:bg-[#141517] sm:flex-row sm:items-center sm:justify-end">
+            <button
+              type="button"
+              onClick={requestClose}
+              disabled={isSubmitting}
+              className="h-10 w-full cursor-pointer rounded-md px-4 text-sm font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-950 disabled:cursor-default disabled:opacity-60 dark:text-stone-300 dark:hover:bg-[#18191b] dark:hover:text-white sm:w-auto"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              disabled={Boolean(nameError) || isSubmitting}
+              onClick={() => {
+                void handleSubmit();
+              }}
+              className="inline-flex h-10 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-md bg-[#f44336] px-4 text-sm font-semibold text-white hover:bg-[#d7382d] disabled:cursor-default disabled:opacity-60 dark:bg-[#ff8a3d] dark:text-stone-950 dark:hover:bg-[#ff7920] sm:w-auto"
+            >
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <Plus className="h-4 w-4" aria-hidden="true" />
+              )}
+              {mode === "create" ? "Ajouter" : "Enregistrer"}
+            </button>
+          </footer>
+        </form>
       </aside>
-    </div>,
-    document.body,
+    </div>
   );
 }
 
@@ -627,18 +672,37 @@ function SiteActionButton({
   label: string;
   onClick: () => void;
 }) {
+  const className = [
+    "inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border transition-colors disabled:cursor-default disabled:opacity-60",
+    isDanger
+      ? "border-red-200 bg-red-50 text-[#f44336] hover:bg-red-100 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20"
+      : "border-stone-200 bg-stone-50 text-stone-500 hover:bg-stone-100 hover:text-stone-950 dark:border-[#2d2e30] dark:bg-[#111213] dark:text-stone-400 dark:hover:bg-[#18191b] dark:hover:text-white",
+  ].join(" ");
+
+  if (isDanger) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={isLoading}
+        className={className}
+        aria-label={label}
+      >
+        <Icon
+          className={["h-4 w-4", isLoading ? "animate-spin" : ""].join(" ")}
+          aria-hidden="true"
+        />
+      </button>
+    );
+  }
+
   return (
     <IconButtonTooltip
       label={label}
       type="button"
       onClick={onClick}
       disabled={isLoading}
-      className={[
-        "inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border transition-colors disabled:cursor-default disabled:opacity-60",
-        isDanger
-          ? "border-red-200 bg-red-50 text-[#f44336] hover:bg-red-100 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20"
-          : "border-stone-200 bg-stone-50 text-stone-500 hover:bg-stone-100 hover:text-stone-950 dark:border-[#2d2e30] dark:bg-[#111213] dark:text-stone-400 dark:hover:bg-[#18191b] dark:hover:text-white",
-      ].join(" ")}
+      className={className}
     >
       <Icon
         className={["h-4 w-4", isLoading ? "animate-spin" : ""].join(" ")}

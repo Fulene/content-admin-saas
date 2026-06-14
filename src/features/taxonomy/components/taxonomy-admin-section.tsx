@@ -1,6 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import {
+  type AnimationEvent,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -58,14 +63,12 @@ export function TaxonomyAdminSection({
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState<number>(10);
-  const [name, setName] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{
     item: Item;
     articleTitles: string[];
   } | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
   const isCategories = mode === "categories";
   const title = isCategories ? "Categories" : "Tags";
   const emptyLabel = isCategories
@@ -143,7 +146,7 @@ export function TaxonomyAdminSection({
     }
   }
 
-  async function handleSave() {
+  async function handleSave(name: string) {
     if (!canManageContent) {
       return;
     }
@@ -157,7 +160,6 @@ export function TaxonomyAdminSection({
       return;
     }
 
-    setIsSaving(true);
     setMessage(null);
 
     try {
@@ -211,8 +213,6 @@ export function TaxonomyAdminSection({
             ? error.message
             : "Impossible d'enregistrer l'element.",
       });
-    } finally {
-      setIsSaving(false);
     }
   }
 
@@ -287,7 +287,6 @@ export function TaxonomyAdminSection({
     }
 
     setEditingItem(null);
-    setName("");
     setIsFormOpen(true);
     setMessage(null);
   }
@@ -298,19 +297,17 @@ export function TaxonomyAdminSection({
     }
 
     setEditingItem(item);
-    setName(item.name);
     setIsFormOpen(true);
     setMessage(null);
   }
 
   function resetForm() {
     setEditingItem(null);
-    setName("");
     setIsFormOpen(false);
   }
 
   return (
-    <section className="flex min-h-full flex-col gap-5">
+    <section className="flex flex-col gap-5">
       <ToastMessage message={message} onClose={() => setMessage(null)} />
 
       <div>
@@ -399,51 +396,6 @@ export function TaxonomyAdminSection({
         </div>
       </div>
 
-      {canManageContent && isFormOpen ? (
-        <div className="rounded-xl border border-stone-200 bg-white p-3 shadow-sm dark:border-[#2d2e30] dark:bg-[#141517] sm:p-4">
-          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
-            <input
-              type="text"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key !== "Enter") {
-                  return;
-                }
-
-                event.preventDefault();
-                void handleSave();
-              }}
-              placeholder={isCategories ? "Nom de categorie" : "Nom du tag"}
-              className="h-11 min-w-0 rounded-md border border-stone-200 bg-white px-3 text-sm text-stone-950 outline-none transition-colors placeholder:text-stone-400 focus:border-stone-400 dark:border-[#2d2e30] dark:bg-[#111213] dark:text-white dark:placeholder:text-stone-500 dark:focus:border-[#ff8a3d]"
-            />
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={isSaving}
-              className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-md bg-[#f44336] px-4 text-sm font-semibold text-white hover:bg-[#d7382d] disabled:cursor-default disabled:opacity-60 dark:bg-[#ff8a3d] dark:text-stone-950 dark:hover:bg-[#ff7920] sm:w-auto"
-            >
-              {isSaving ? (
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-              ) : editingItem ? (
-                <Pencil className="h-4 w-4" aria-hidden="true" />
-              ) : (
-                <Plus className="h-4 w-4" aria-hidden="true" />
-              )}
-              {editingItem ? "Enregistrer" : "Ajouter"}
-            </button>
-            <button
-              type="button"
-              onClick={resetForm}
-              className="inline-flex h-11 w-full cursor-pointer items-center justify-center rounded-md border border-stone-200 px-3 text-stone-600 hover:bg-stone-100 hover:text-stone-950 dark:border-[#2d2e30] dark:text-stone-300 dark:hover:bg-[#18191b] dark:hover:text-white sm:w-11"
-              aria-label="Annuler l'edition"
-            >
-              <X className="h-4 w-4" aria-hidden="true" />
-            </button>
-          </div>
-        </div>
-      ) : null}
-
       <div className="rounded-lg border border-stone-200 bg-white dark:border-[#2d2e30] dark:bg-[#141517]">
         {loadState === "loading" ? (
           <p className="p-6 text-sm text-stone-500 dark:text-stone-400">
@@ -490,15 +442,14 @@ export function TaxonomyAdminSection({
                     >
                       <Pencil className="h-4 w-4" aria-hidden="true" />
                     </IconButtonTooltip>
-                    <IconButtonTooltip
-                      label={`Supprimer ${item.name}`}
+                    <button
                       type="button"
                       onClick={() => void requestDelete(item)}
                       className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border border-red-200 bg-red-50 text-[#f44336] hover:bg-red-100 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20"
                       aria-label={`Supprimer ${item.name}`}
                     >
                       <Trash2 className="h-4 w-4" aria-hidden="true" />
-                    </IconButtonTooltip>
+                    </button>
                   </div>
                 ) : null}
               </div>
@@ -515,6 +466,17 @@ export function TaxonomyAdminSection({
           totalPages={totalPages}
           className="mb-4 justify-center"
           onPageChange={setCurrentPage}
+        />
+      ) : null}
+
+      {canManageContent ? (
+        <TaxonomyFormDrawer
+          initialName={editingItem?.name ?? ""}
+          isCategories={isCategories}
+          isOpen={isFormOpen}
+          mode={editingItem ? "edit" : "create"}
+          onClose={resetForm}
+          onSubmit={handleSave}
         />
       ) : null}
 
@@ -615,6 +577,202 @@ function ItemsPerPageControl({
       value={String(itemsPerPage)}
       onChange={(value) => onItemsPerPageChange(Number(value))}
     />
+  );
+}
+
+function TaxonomyFormDrawer({
+  initialName,
+  isCategories,
+  isOpen,
+  mode,
+  onClose,
+  onSubmit,
+}: {
+  initialName: string;
+  isCategories: boolean;
+  isOpen: boolean;
+  mode: "create" | "edit";
+  onClose: () => void;
+  onSubmit: (name: string) => Promise<void>;
+}) {
+  const [name, setName] = useState(initialName);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDrawerMounted, setIsDrawerMounted] = useState(isOpen);
+  const [isClosing, setIsClosing] = useState(false);
+  const trimmedName = name.trim();
+  const nameError =
+    trimmedName.length === 0
+      ? "Nom obligatoire."
+      : trimmedName.length < 2
+        ? "2 caracteres minimum."
+        : null;
+  const nameLabel = isCategories ? "Nom de la categorie" : "Nom du tag";
+  const title =
+    mode === "create"
+      ? isCategories
+        ? "Ajouter une categorie"
+        : "Ajouter un tag"
+      : isCategories
+        ? "Modifier la categorie"
+        : "Modifier le tag";
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsDrawerMounted(true);
+      setIsClosing(false);
+      setName(initialName);
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (isDrawerMounted) {
+      setIsClosing(true);
+    }
+  }, [initialName, isDrawerMounted, isOpen]);
+
+  if (!isDrawerMounted) {
+    return null;
+  }
+
+  function requestClose() {
+    if (isSubmitting || isClosing) {
+      return;
+    }
+
+    onClose();
+  }
+
+  function handleDrawerAnimationEnd(event: AnimationEvent<HTMLElement>) {
+    if (event.target !== event.currentTarget || !isClosing) {
+      return;
+    }
+
+    setIsDrawerMounted(false);
+    setIsClosing(false);
+    setIsSubmitting(false);
+  }
+
+  async function handleSubmit() {
+    if (nameError || isSubmitting) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      await onSubmit(trimmedName);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  const backdropAnimationClass = isClosing
+    ? "article-create-drawer-backdrop-out"
+    : "article-create-drawer-backdrop-in";
+  const drawerAnimationClass = isClosing
+    ? "article-create-drawer-out"
+    : "article-create-drawer-in";
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex h-[100dvh] w-[100dvw] justify-end overflow-hidden overscroll-none">
+      <button
+        type="button"
+        onClick={requestClose}
+        className={`${backdropAnimationClass} absolute inset-0 cursor-pointer bg-black/35`}
+        aria-label="Fermer le panneau"
+      />
+
+      <aside
+        className={`${drawerAnimationClass} relative z-[1] grid h-[100dvh] max-h-[100dvh] w-full max-w-[100dvw] min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden border-l border-stone-200 bg-white shadow-2xl dark:border-[#2d2e30] dark:bg-[#141517] lg:max-w-[520px]`}
+        onAnimationEnd={handleDrawerAnimationEnd}
+      >
+        <header className="flex shrink-0 items-center justify-between border-b border-stone-200 px-5 py-4 dark:border-[#2d2e30]">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f44336] dark:text-[#ff8a3d]">
+              Taxonomie
+            </p>
+            <h2 className="mt-1 text-xl font-bold text-stone-950 dark:text-white">
+              {title}
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={requestClose}
+            className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-stone-100 text-stone-700 hover:bg-stone-200 dark:bg-[#111213] dark:text-stone-300 dark:hover:bg-[#18191b]"
+            aria-label="Fermer"
+          >
+            <X className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </header>
+
+        <form
+          className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto] overflow-hidden"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void handleSubmit();
+          }}
+        >
+          <div className="min-h-0 overflow-y-auto overscroll-contain px-5 py-5">
+            <div className="grid gap-5">
+              <label className="grid gap-2">
+                <span className="text-sm font-semibold text-stone-800 dark:text-stone-200">
+                  {nameLabel} <span className="text-[#f44336]">*</span>
+                </span>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder={
+                    isCategories ? "Nom de categorie" : "Nom du tag"
+                  }
+                  aria-invalid={Boolean(nameError)}
+                  aria-describedby={nameError ? "taxonomy-name-error" : undefined}
+                  className={[
+                    "h-11 rounded-md border bg-white px-3 text-sm text-stone-950 outline-none transition-colors placeholder:text-stone-400 dark:bg-[#111213] dark:text-white dark:placeholder:text-stone-500",
+                    nameError
+                      ? "border-[#f44336] focus:border-[#f44336] dark:border-red-400 dark:focus:border-red-400"
+                      : "border-stone-200 focus:border-stone-400 dark:border-[#2d2e30] dark:focus:border-[#ff8a3d]",
+                  ].join(" ")}
+                />
+                {nameError ? (
+                  <span
+                    id="taxonomy-name-error"
+                    className="text-xs font-medium text-[#f44336] dark:text-red-300"
+                  >
+                    {nameError}
+                  </span>
+                ) : null}
+              </label>
+            </div>
+          </div>
+
+          <footer className="flex min-w-0 shrink-0 flex-col-reverse gap-3 border-t border-stone-200 bg-white px-5 py-4 dark:border-[#2d2e30] dark:bg-[#141517] sm:flex-row sm:items-center sm:justify-end">
+            <button
+              type="button"
+              onClick={requestClose}
+              disabled={isSubmitting}
+              className="h-10 w-full cursor-pointer rounded-md px-4 text-sm font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-950 disabled:cursor-default disabled:opacity-60 dark:text-stone-300 dark:hover:bg-[#18191b] dark:hover:text-white sm:w-auto"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              disabled={Boolean(nameError) || isSubmitting}
+              className="inline-flex h-10 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-md bg-[#f44336] px-4 text-sm font-semibold text-white hover:bg-[#d7382d] disabled:cursor-default disabled:opacity-60 dark:bg-[#ff8a3d] dark:text-stone-950 dark:hover:bg-[#ff7920] sm:w-auto"
+            >
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : mode === "edit" ? (
+                <Pencil className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                <Plus className="h-4 w-4" aria-hidden="true" />
+              )}
+              {mode === "edit" ? "Enregistrer" : "Ajouter"}
+            </button>
+          </footer>
+        </form>
+      </aside>
+    </div>
   );
 }
 
