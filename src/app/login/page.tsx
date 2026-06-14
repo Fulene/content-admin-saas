@@ -4,7 +4,7 @@ import { LoginForm } from "@/features/auth/components/login-form";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
-  title: "Connexion admin - content-admin-saas",
+  title: "Connexion - content-admin-saas",
 };
 
 export default async function LoginPage() {
@@ -23,11 +23,8 @@ export default async function LoginPage() {
             content-admin-saas
           </p>
           <h1 className="mt-2 text-2xl font-bold text-stone-950 dark:text-white">
-            Connexion admin
+            Connexion
           </h1>
-          <p className="mt-2 text-sm text-stone-500 dark:text-stone-300">
-            Acces reserve aux comptes administrateurs Supabase.
-          </p>
         </div>
 
         <div className="rounded-lg border border-stone-200 bg-white p-5 shadow-sm dark:border-[#2d2e30] dark:bg-[#141517]">
