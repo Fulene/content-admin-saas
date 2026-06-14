@@ -4,6 +4,7 @@ import { type AnimationEvent, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import type { ReactNode } from "react";
 import { Pencil, X } from "lucide-react";
+import { IconButtonTooltip } from "@/components/feedback/icon-button-tooltip";
 import type { ArticleEditFocusTarget } from "@/features/articles/components/article-edit-drawer";
 import { ArticleImagePreviewLabel } from "@/features/articles/components/article-image-preview-label";
 import type { Article } from "@/features/articles/types/article";
@@ -260,7 +261,8 @@ function EditFieldButton({
   onClick: () => void;
 }) {
   return (
-    <button
+    <IconButtonTooltip
+      label={label}
       type="button"
       onClick={onClick}
       className={[
@@ -268,10 +270,9 @@ function EditFieldButton({
         className,
       ].join(" ")}
       aria-label={label}
-      title={label}
     >
       <Pencil className="h-4 w-4" aria-hidden="true" />
-    </button>
+    </IconButtonTooltip>
   );
 }
 

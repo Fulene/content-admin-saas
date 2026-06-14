@@ -1,5 +1,8 @@
 import { z } from "zod";
-import type { Profile } from "@/features/profile/types/profile";
+import {
+  GLOBAL_ROLE_VALUES,
+  type Profile,
+} from "@/features/profile/types/profile";
 
 const timestampSchema = z.string().datetime({ offset: true });
 
@@ -8,6 +11,7 @@ export const profileSchema: z.ZodType<Profile> = z.object({
   first_name: z.string().nullable(),
   last_name: z.string().nullable(),
   avatar_url: z.string().nullable(),
+  global_role: z.enum(GLOBAL_ROLE_VALUES).nullable(),
   created_at: timestampSchema,
   updated_at: timestampSchema,
 });

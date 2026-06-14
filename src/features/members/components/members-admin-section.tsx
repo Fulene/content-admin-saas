@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import type { MemberActionResult } from "@/features/members/actions/members.actions";
 import { ConfirmDialog } from "@/components/dialogs/confirm-dialog";
+import { IconButtonTooltip } from "@/components/feedback/icon-button-tooltip";
 import {
   ToastMessage,
   type ToastMessageState,
@@ -63,10 +64,12 @@ type GeneratedInvitationLink = {
 type MembersTab = "members" | "invitations";
 
 export function MembersAdminSection({
+  canBypassLastAdminRule,
   canManageInvitations,
   currentUserId,
   mode,
 }: {
+  canBypassLastAdminRule: boolean;
   canManageInvitations: boolean;
   currentUserId: string;
   mode: MembersTab;
@@ -286,11 +289,12 @@ export function MembersAdminSection({
       adminRoleId &&
       member.role_id === adminRoleId &&
       nextRoleId !== adminRoleId &&
-      adminCount <= 1
+      adminCount <= 1 &&
+      !canBypassLastAdminRule
     ) {
       setMessage({
         status: "error",
-        text: "Impossible de modifier le rôle du dernier admin du site.",
+        text: "Dernier admin : modification impossible.",
       });
       return;
     }
@@ -518,7 +522,8 @@ export function MembersAdminSection({
               const isAdmin = adminRoleId
                 ? member.role_id === adminRoleId
                 : false;
-              const isLastAdmin = isAdmin && adminCount <= 1;
+              const isProtectedLastAdmin =
+                isAdmin && adminCount <= 1 && !canBypassLastAdminRule;
 
               return (
                 <div
@@ -579,20 +584,33 @@ export function MembersAdminSection({
                     </div>
                   )}
                   {canManageMembers ? (
-                    <button
-                      type="button"
-                      onClick={() => setPendingRemoval(member)}
-                      disabled={isCurrentUser || isLastAdmin}
-                      title={
-                        isLastAdmin
+                    <IconButtonTooltip
+                      label={
+                        isCurrentUser
+                          ? "Impossible de retirer votre propre compte"
+                          : isProtectedLastAdmin
                           ? "Impossible de retirer le dernier admin"
-                          : undefined
+                          : "Retirer"
                       }
-                      className="inline-flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-red-200 bg-red-50 px-3 text-sm font-semibold text-[#f44336] hover:bg-red-100 disabled:cursor-default disabled:opacity-50 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20 sm:col-span-2 lg:col-span-1 lg:w-auto"
+                      type="button"
+                      onClick={() => {
+                        if (isCurrentUser || isProtectedLastAdmin) {
+                          return;
+                        }
+
+                        setPendingRemoval(member);
+                      }}
+                      aria-disabled={isCurrentUser || isProtectedLastAdmin}
+                      className={[
+                        "inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-red-200 bg-red-50 px-3 text-sm font-semibold text-[#f44336] hover:bg-red-100 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20 sm:col-span-2 lg:col-span-1 lg:w-auto",
+                        isCurrentUser || isProtectedLastAdmin
+                          ? "cursor-default opacity-50"
+                          : "cursor-pointer",
+                      ].join(" ")}
                     >
                       <Trash2 className="h-4 w-4" aria-hidden="true" />
                       Retirer
-                    </button>
+                    </IconButtonTooltip>
                   ) : null}
                 </div>
               );
@@ -672,13 +690,13 @@ export function MembersAdminSection({
               <button
                 type="button"
                 onClick={() => setIsInviteDrawerOpen(true)}
-                className="admin-data-toolbar-action group inline-flex h-11 w-11 shrink-0 cursor-pointer items-center overflow-hidden rounded-full bg-[#f44336] text-sm font-semibold text-white transition-[width,background-color] duration-200 ease-out hover:w-[132px] hover:bg-[#d7382d] focus-visible:w-[132px] focus-visible:bg-[#d7382d] dark:bg-[#ff8a3d] dark:text-stone-950 dark:hover:bg-[#ff7920] dark:focus-visible:bg-[#ff7920]"
+                className="admin-data-toolbar-action group relative h-11 w-11 shrink-0 cursor-pointer overflow-hidden rounded-full bg-[#f44336] text-sm font-semibold text-white transition-[width,background-color] duration-200 ease-out hover:w-[132px] hover:bg-[#d7382d] focus-visible:w-[132px] focus-visible:bg-[#d7382d] dark:bg-[#ff8a3d] dark:text-stone-950 dark:hover:bg-[#ff7920] dark:focus-visible:bg-[#ff7920]"
                 aria-label="Inviter"
               >
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center">
+                <span className="absolute left-0 top-0 flex h-11 w-11 items-center justify-center">
                   <Plus className="h-5 w-5" aria-hidden="true" />
                 </span>
-                <span className="-ml-1 w-0 overflow-hidden whitespace-nowrap opacity-0 transition-[width,opacity] duration-200 ease-out group-hover:w-[80px] group-hover:opacity-100 group-focus-visible:w-[80px] group-focus-visible:opacity-100">
+                <span className="absolute inset-0 flex items-center justify-center overflow-hidden whitespace-nowrap pl-8 pr-3 opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100 group-focus-visible:opacity-100">
                   Inviter
                 </span>
               </button>

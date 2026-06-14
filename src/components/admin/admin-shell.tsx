@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   ChevronDown,
+  Building2,
   FileText,
   FolderTree,
   LogOut,
@@ -26,7 +27,9 @@ import { ArticlesAdminList } from "@/features/articles/components/articles-admin
 import { MembersAdminSection } from "@/features/members/components/members-admin-section";
 import { ProfileAdminSection } from "@/features/profile/components/profile-admin-section";
 import type { ProfileView } from "@/features/profile/types/profile";
+import { isGlobalAdminRole } from "@/features/profile/utils/global-role";
 import { ActiveSiteProvider } from "@/features/sites/components/active-site-provider";
+import { SitesManagementSection } from "@/features/sites/components/sites-management-section";
 import { getCurrentSitePermissionsAction } from "@/features/sites/actions/site-permissions.actions";
 import type { Site } from "@/features/sites/types/site";
 import { TaxonomyAdminSection } from "@/features/taxonomy/components/taxonomy-admin-section";
@@ -37,6 +40,7 @@ type AdminSectionId =
   | "tags"
   | "members-list"
   | "members-invitations"
+  | "sites-management"
   | "profile-edit"
   | "profile-security";
 type ThemeMode = "light" | "dark" | "forest";
@@ -103,8 +107,12 @@ export function AdminShell({
   userId: string;
 }) {
   const router = useRouter();
+  const isGlobalAdmin = isGlobalAdminRole(initialProfile?.global_role);
+  const [sites, setSites] = useState<Site[]>(initialSites);
   const [activeSectionId, setActiveSectionId] =
-    useState<AdminSectionId>("articles");
+    useState<AdminSectionId>(() =>
+      isGlobalAdmin && initialSites.length === 0 ? "sites-management" : "articles",
+    );
   const [themeMode, setThemeMode] = useState<ThemeMode>("dark");
   const [profile, setProfile] = useState<ProfileView | null>(initialProfile);
   const [activeSite, setActiveSite] = useState<Site | null>(null);
@@ -120,13 +128,16 @@ export function AdminShell({
 
   const isProfileActive = profileSectionIds.includes(activeSectionId);
   const isMembersActive = memberSectionIds.includes(activeSectionId);
+  const isSitesManagementActive = activeSectionId === "sites-management";
   const [canManageInvitations, setCanManageInvitations] = useState(
     false,
   );
   const [canManageContent, setCanManageContent] = useState(false);
   const [areSitePermissionsLoaded, setAreSitePermissionsLoaded] =
     useState(false);
-  const visibleMemberSubsections = canManageInvitations
+  const effectiveCanManageInvitations = isGlobalAdmin || canManageInvitations;
+  const effectiveCanManageContent = isGlobalAdmin || canManageContent;
+  const visibleMemberSubsections = effectiveCanManageInvitations
     ? memberSubsections
     : memberSubsections.filter((section) => section.id !== "members-invitations");
   const userLabel =
@@ -136,6 +147,10 @@ export function AdminShell({
       userEmail,
   );
   const activeSiteStorageKey = getActiveSiteStorageKey(userId);
+
+  useEffect(() => {
+    setSites(initialSites);
+  }, [initialSites]);
 
   useEffect(() => {
     if (isMembersActive) {
@@ -148,7 +163,7 @@ export function AdminShell({
       activeSite &&
       areSitePermissionsLoaded &&
       activeSectionId === "members-invitations" &&
-      !canManageInvitations
+      !effectiveCanManageInvitations
     ) {
       setActiveSectionId("members-list");
     }
@@ -156,10 +171,17 @@ export function AdminShell({
     activeSectionId,
     activeSite,
     areSitePermissionsLoaded,
-    canManageInvitations,
+    effectiveCanManageInvitations,
   ]);
 
   useEffect(() => {
+    if (isGlobalAdmin) {
+      setCanManageInvitations(true);
+      setCanManageContent(true);
+      setAreSitePermissionsLoaded(true);
+      return;
+    }
+
     if (!activeSite?.id) {
       setCanManageInvitations(false);
       setCanManageContent(false);
@@ -192,7 +214,7 @@ export function AdminShell({
     return () => {
       isCurrentSite = false;
     };
-  }, [activeSite?.id]);
+  }, [activeSite?.id, isGlobalAdmin]);
 
   useEffect(() => {
     if (isProfileActive) {
@@ -231,41 +253,52 @@ export function AdminShell({
   }, [themeMode]);
 
   useEffect(() => {
-    if (initialSites.length === 0) {
+    if (sites.length === 0) {
       setActiveSite(null);
       setIsSiteReady(true);
       return;
     }
 
-    if (initialSites.length === 1) {
-      const [site] = initialSites;
+    if (sites.length === 1) {
+      const [site] = sites;
       setActiveSite(site);
-      setCanManageInvitations(false);
-      setCanManageContent(false);
-      setAreSitePermissionsLoaded(false);
+      setCanManageInvitations(isGlobalAdmin);
+      setCanManageContent(isGlobalAdmin);
+      setAreSitePermissionsLoaded(isGlobalAdmin);
       window.localStorage.setItem(activeSiteStorageKey, site.id);
       setIsSiteReady(true);
       return;
     }
 
     const storedSiteId = window.localStorage.getItem(activeSiteStorageKey);
-    const storedSite = initialSites.find((site) => site.id === storedSiteId);
+    const storedSite = sites.find((site) => site.id === storedSiteId);
 
     if (!storedSite) {
+      if (isGlobalAdmin) {
+        const [firstSite] = sites;
+        window.localStorage.setItem(activeSiteStorageKey, firstSite.id);
+        setActiveSite(firstSite);
+        setCanManageInvitations(true);
+        setCanManageContent(true);
+        setAreSitePermissionsLoaded(true);
+        setIsSiteReady(true);
+        return;
+      }
+
       window.localStorage.removeItem(activeSiteStorageKey);
       router.replace("/select-site");
       return;
     }
 
     setActiveSite(storedSite);
-    setCanManageInvitations(false);
-    setCanManageContent(false);
-    setAreSitePermissionsLoaded(false);
+    setCanManageInvitations(isGlobalAdmin);
+    setCanManageContent(isGlobalAdmin);
+    setAreSitePermissionsLoaded(isGlobalAdmin);
     setIsSiteReady(true);
-  }, [activeSiteStorageKey, initialSites, router]);
+  }, [activeSiteStorageKey, isGlobalAdmin, router, sites]);
 
   function handleActiveSiteChange(siteId: string) {
-    const nextSite = initialSites.find((site) => site.id === siteId);
+    const nextSite = sites.find((site) => site.id === siteId);
 
     if (!nextSite) {
       return;
@@ -273,9 +306,50 @@ export function AdminShell({
 
     window.localStorage.setItem(activeSiteStorageKey, nextSite.id);
     setActiveSite(nextSite);
-    setCanManageInvitations(false);
-    setCanManageContent(false);
-    setAreSitePermissionsLoaded(false);
+    setCanManageInvitations(isGlobalAdmin);
+    setCanManageContent(isGlobalAdmin);
+    setAreSitePermissionsLoaded(isGlobalAdmin);
+    setActiveSectionId("articles");
+  }
+
+  function handleManagedSitesChange(nextSites: Site[]) {
+    setSites(nextSites);
+    setActiveSite((currentSite) => {
+      if (!currentSite) {
+        return nextSites[0] ?? null;
+      }
+
+      const nextActiveSite = nextSites.find((site) => site.id === currentSite.id);
+
+      if (nextActiveSite) {
+        return nextActiveSite;
+      }
+
+      const fallbackSite = nextSites[0] ?? null;
+
+      if (fallbackSite) {
+        window.localStorage.setItem(activeSiteStorageKey, fallbackSite.id);
+      } else {
+        window.localStorage.removeItem(activeSiteStorageKey);
+        setActiveSectionId("sites-management");
+      }
+
+      return fallbackSite;
+    });
+  }
+
+  function handleOpenManagedSite(siteId: string) {
+    const nextSite = sites.find((site) => site.id === siteId);
+
+    if (!nextSite) {
+      return;
+    }
+
+    window.localStorage.setItem(activeSiteStorageKey, nextSite.id);
+    setActiveSite(nextSite);
+    setCanManageInvitations(isGlobalAdmin);
+    setCanManageContent(isGlobalAdmin);
+    setAreSitePermissionsLoaded(isGlobalAdmin);
     setActiveSectionId("articles");
   }
 
@@ -379,7 +453,7 @@ export function AdminShell({
           <div className="mt-9 flex justify-center">
             <SiteSwitcher
               activeSiteId={activeSite.id}
-              sites={initialSites}
+              sites={sites}
               onChange={(siteId) => {
                 handleActiveSiteChange(siteId);
                 closeMobileMenu();
@@ -488,6 +562,21 @@ export function AdminShell({
               ))}
             </div>
           </div>
+
+          {isGlobalAdmin ? (
+            <>
+              <SidebarDivider />
+              <SidebarButton
+                icon={Building2}
+                isActive={isSitesManagementActive}
+                label="Sites"
+                onClick={() => {
+                  setActiveSectionId("sites-management");
+                  closeMobileMenu();
+                }}
+              />
+            </>
+          ) : null}
         </nav>
 
         <div className="mt-auto flex flex-col gap-2">
@@ -517,20 +606,15 @@ export function AdminShell({
     return <SiteLoadingState />;
   }
 
-  if (initialSites.length === 0) {
+  if (sites.length === 0 && !isGlobalAdmin) {
     return <NoSitesState />;
   }
 
-  if (!activeSite) {
+  if (!activeSite && !isGlobalAdmin) {
     return <SiteLoadingState />;
   }
 
-  return (
-    <ActiveSiteProvider
-      activeSite={activeSite}
-      setActiveSiteId={handleActiveSiteChange}
-      sites={initialSites}
-    >
+  const adminContent = (
     <main className="h-screen overflow-hidden bg-white text-stone-950 dark:bg-[#090b0b] dark:text-stone-50">
       <div className="flex h-full flex-col bg-white dark:bg-[#141517]">
         <header className="flex h-18 shrink-0 items-center justify-between bg-white px-5 dark:bg-[#141517] lg:h-20 lg:px-8">
@@ -576,11 +660,13 @@ export function AdminShell({
           </div>
 
           <div className="hidden items-center gap-3 lg:flex">
-            <SiteSwitcher
-              activeSiteId={activeSite.id}
-              sites={initialSites}
-              onChange={handleActiveSiteChange}
-            />
+            {activeSite ? (
+              <SiteSwitcher
+                activeSiteId={activeSite.id}
+                sites={sites}
+                onChange={handleActiveSiteChange}
+              />
+            ) : null}
 
             <button
               type="button"
@@ -734,6 +820,20 @@ export function AdminShell({
                   ))}
                 </div>
               ) : null}
+
+              {isGlobalAdmin ? (
+                <>
+                  <SidebarDivider isCollapsed={isSidebarCollapsed} />
+                  <SidebarButton
+                    icon={Building2}
+                    isActive={isSitesManagementActive}
+                    isCollapsed={isSidebarCollapsed}
+                    isLabelVisible={areSidebarLabelsVisible}
+                    label="Sites"
+                    onClick={() => setActiveSectionId("sites-management")}
+                  />
+                </>
+              ) : null}
             </nav>
 
             <ThemeSelector
@@ -772,24 +872,34 @@ export function AdminShell({
         <section className="flex min-h-0 min-w-0 flex-1 flex-col bg-white dark:bg-[#141517]">
           <div className="flex min-h-0 flex-1 overflow-y-auto border-l border-t border-stone-200 bg-white px-6 pb-12 pt-6 [scrollbar-gutter:stable] dark:border-[#2d2e30] dark:bg-[#090b0b] sm:px-10 sm:pb-14 lg:rounded-tl-[5px]">
             <div className="min-h-full w-full">
-              {activeSectionId === "articles" ? (
-                <ArticlesAdminList canManageContent={canManageContent} />
+              {activeSectionId === "sites-management" && isGlobalAdmin ? (
+                <SitesManagementSection
+                  onOpenSite={handleOpenManagedSite}
+                  onSitesChange={handleManagedSitesChange}
+                />
               ) : null}
-              {activeSectionId === "categories" ? (
+              {!activeSite && activeSectionId !== "sites-management" ? (
+                <NoActiveSiteState />
+              ) : null}
+              {activeSite && activeSectionId === "articles" ? (
+                <ArticlesAdminList canManageContent={effectiveCanManageContent} />
+              ) : null}
+              {activeSite && activeSectionId === "categories" ? (
                 <TaxonomyAdminSection
-                  canManageContent={canManageContent}
+                  canManageContent={effectiveCanManageContent}
                   mode="categories"
                 />
               ) : null}
-              {activeSectionId === "tags" ? (
+              {activeSite && activeSectionId === "tags" ? (
                 <TaxonomyAdminSection
-                  canManageContent={canManageContent}
+                  canManageContent={effectiveCanManageContent}
                   mode="tags"
                 />
               ) : null}
-              {isMembersActive ? (
+              {activeSite && isMembersActive ? (
                 <MembersAdminSection
-                  canManageInvitations={canManageInvitations}
+                  canBypassLastAdminRule={isGlobalAdmin}
+                  canManageInvitations={effectiveCanManageInvitations}
                   currentUserId={userId}
                   mode={
                     activeSectionId === "members-invitations"
@@ -817,6 +927,19 @@ export function AdminShell({
         </div>
       </div>
     </main>
+  );
+
+  if (!activeSite) {
+    return adminContent;
+  }
+
+  return (
+    <ActiveSiteProvider
+      activeSite={activeSite}
+      setActiveSiteId={handleActiveSiteChange}
+      sites={sites}
+    >
+      {adminContent}
     </ActiveSiteProvider>
   );
 }
@@ -929,12 +1052,41 @@ function NoSitesState() {
   );
 }
 
+function NoActiveSiteState() {
+  return (
+    <div className="flex min-h-full items-center justify-center p-8 text-center">
+      <div>
+        <p className="text-base font-semibold text-stone-950 dark:text-white">
+          Aucun site actif
+        </p>
+        <p className="mt-2 max-w-md text-sm text-stone-500 dark:text-stone-400">
+          Ouvrez un site depuis la section Sites pour acceder a son contenu.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function getUserInitials(value: string) {
   const parts = value.split(/[ @._-]/).filter(Boolean);
   const firstInitial = parts[0]?.[0] ?? "A";
   const secondInitial = parts[1]?.[0] ?? "";
 
   return `${firstInitial}${secondInitial}`.toUpperCase();
+}
+
+function SidebarDivider({ isCollapsed = false }: { isCollapsed?: boolean }) {
+  return (
+    <div
+      className={[
+        "py-2",
+        isCollapsed ? "px-2" : "px-4",
+      ].join(" ")}
+      aria-hidden="true"
+    >
+      <div className="h-px w-full bg-stone-200 dark:bg-[#2d2e30]" />
+    </div>
+  );
 }
 
 function SidebarButton({

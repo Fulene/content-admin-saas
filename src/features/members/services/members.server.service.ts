@@ -7,6 +7,7 @@ import type {
   SiteMember,
 } from "@/features/members/types/member";
 import { createAvatarDisplayUrl } from "@/features/profile/services/profile-storage.service";
+import { isGlobalAdminRole } from "@/features/profile/utils/global-role";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -48,19 +49,31 @@ export async function getSiteMembersForCurrentUser(
     throw new Error("Utilisateur non authentifie.");
   }
 
-  const { data: currentMember, error: currentMemberError } = await supabase
-    .from("site_members")
-    .select("site_id,user_id")
-    .eq("site_id", siteId)
-    .eq("user_id", user.id)
+  const { data: profileData, error: profileError } = await supabase
+    .from("profiles")
+    .select("global_role")
+    .eq("id", user.id)
     .maybeSingle();
 
-  if (currentMemberError) {
-    throw new Error(currentMemberError.message);
+  if (profileError) {
+    throw new Error(profileError.message);
   }
 
-  if (!currentMember) {
-    throw new Error("Acces refuse a ce site.");
+  if (!isGlobalAdminRole(profileData?.global_role)) {
+    const { data: currentMember, error: currentMemberError } = await supabase
+      .from("site_members")
+      .select("site_id,user_id")
+      .eq("site_id", siteId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (currentMemberError) {
+      throw new Error(currentMemberError.message);
+    }
+
+    if (!currentMember) {
+      throw new Error("Acces refuse a ce site.");
+    }
   }
 
   const adminSupabase = createAdminClient();

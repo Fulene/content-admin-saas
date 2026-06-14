@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type InputHTMLAttributes } from "react";
 import { useForm } from "react-hook-form";
+import { IconButtonTooltip } from "@/components/feedback/icon-button-tooltip";
 import { ToastMessage } from "@/components/feedback/toast-message";
 import {
   changePasswordSchema,
@@ -316,15 +317,15 @@ export function ProfileAdminSection({
                       void handleAvatarChange(event.target.files?.[0])
                     }
                   />
-                  <button
+                  <IconButtonTooltip
+                    label="Uploader"
                     type="button"
                     onClick={() => avatarInputRef.current?.click()}
                     className="absolute bottom-1 right-1 inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-[#f44336] text-white shadow-md transition-transform duration-200 hover:scale-105 hover:bg-[#d93025] dark:bg-[#ff8a3d] dark:text-[#111213] dark:hover:bg-[#ff7a1f]"
                     aria-label="Uploader un avatar"
-                    title="Uploader"
                   >
                     <Camera className="h-4 w-4" aria-hidden="true" />
-                  </button>
+                  </IconButtonTooltip>
                 </div>
 
               </div>

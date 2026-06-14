@@ -2,7 +2,9 @@ import { ZodError } from "zod";
 import { siteListSchema } from "@/features/sites/schemas/site.schema";
 import type { Site } from "@/features/sites/types/site";
 
-const SITE_MEMBER_SELECT = "site_id, roles(id,code,label), sites(id,name,slug)";
+const SITE_MEMBER_SELECT =
+  "site_id, roles(id,code,label), sites(id,name,slug,status)";
+const SITES_SELECT = "id,name,slug,status";
 
 type SiteMemberRow = {
   roles: Site["currentUserRole"] | Site["currentUserRole"][];
@@ -17,7 +19,8 @@ export async function getAccessibleSites(): Promise<Site[]> {
 
     const { data, error } = await supabase
       .from("site_members")
-      .select(SITE_MEMBER_SELECT);
+      .select(SITE_MEMBER_SELECT)
+      .eq("sites.status", "active");
 
     if (error) {
       throw new Error(error.message);
@@ -58,3 +61,14 @@ export function parseSiteMemberRows(rows: SiteMemberRow[]): Site[] {
 
   return siteListSchema.parse(uniqueSites);
 }
+
+export function parseSiteRows(rows: Array<Omit<Site, "currentUserRole">>): Site[] {
+  return siteListSchema.parse(
+    rows.map((site) => ({
+      ...site,
+      currentUserRole: null,
+    })),
+  );
+}
+
+export { SITES_SELECT };

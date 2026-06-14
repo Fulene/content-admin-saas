@@ -18,6 +18,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { ConfirmDialog } from "@/components/dialogs/confirm-dialog";
+import { IconButtonTooltip } from "@/components/feedback/icon-button-tooltip";
 import {
   ToastMessage,
   type ToastMessageState,
@@ -403,13 +404,13 @@ export function ArticlesAdminList({
             <button
               type="button"
               onClick={() => setIsCreateDrawerOpen(true)}
-              className="admin-data-toolbar-action group inline-flex h-11 w-11 shrink-0 cursor-pointer items-center overflow-hidden rounded-full bg-[#f44336] text-sm font-semibold text-white transition-[width,background-color] duration-200 ease-out hover:w-[156px] hover:bg-[#d7382d] focus-visible:w-[156px] focus-visible:bg-[#d7382d] dark:bg-[#ff8a3d] dark:text-stone-950 dark:hover:bg-[#ff7920] dark:focus-visible:bg-[#ff7920]"
+              className="admin-data-toolbar-action group relative h-11 w-11 shrink-0 cursor-pointer overflow-hidden rounded-full bg-[#f44336] text-sm font-semibold text-white transition-[width,background-color] duration-200 ease-out hover:w-[156px] hover:bg-[#d7382d] focus-visible:w-[156px] focus-visible:bg-[#d7382d] dark:bg-[#ff8a3d] dark:text-stone-950 dark:hover:bg-[#ff7920] dark:focus-visible:bg-[#ff7920]"
               aria-label="Nouvel article"
             >
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center">
+              <span className="absolute left-0 top-0 flex h-11 w-11 items-center justify-center">
                 <Plus className="h-4 w-4" aria-hidden="true" />
               </span>
-              <span className="-ml-1 w-0 overflow-hidden whitespace-nowrap opacity-0 transition-[width,opacity] duration-200 ease-out group-hover:w-[104px] group-hover:opacity-100 group-focus-visible:w-[104px] group-focus-visible:opacity-100">
+              <span className="absolute inset-0 flex items-center justify-center overflow-hidden whitespace-nowrap pl-8 pr-3 opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100 group-focus-visible:opacity-100">
                 Nouvel article
               </span>
             </button>
@@ -1156,7 +1157,8 @@ function ArticleActionButton({
   onClick: () => void;
 }) {
   return (
-    <button
+    <IconButtonTooltip
+      label={label}
       type="button"
       onClick={onClick}
       className={[
@@ -1165,11 +1167,10 @@ function ArticleActionButton({
           ? "border-red-200 bg-red-50 text-[#f44336] hover:bg-red-100 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20"
           : "border-stone-200 bg-stone-50 text-stone-500 hover:bg-stone-100 hover:text-stone-950 dark:border-[#2d2e30] dark:bg-[#111213] dark:text-stone-400 dark:hover:bg-[#18191b] dark:hover:text-white",
       ].join(" ")}
-      title={label}
     >
       <Icon className="h-4 w-4" aria-hidden="true" />
       <span className="sr-only">{label}</span>
-    </button>
+    </IconButtonTooltip>
   );
 }
 

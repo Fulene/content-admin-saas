@@ -1,5 +1,6 @@
 "use server";
 
+import { isGlobalAdminRole } from "@/features/profile/utils/global-role";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -34,6 +35,19 @@ export async function getCurrentSitePermissionsAction({
 
   if (userError || !user) {
     return DEFAULT_SITE_PERMISSIONS;
+  }
+
+  const { data: profileData, error: profileError } = await supabase
+    .from("profiles")
+    .select("global_role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (!profileError && isGlobalAdminRole(profileData?.global_role)) {
+    return {
+      canManageContent: true,
+      canManageUsers: true,
+    };
   }
 
   const adminSupabase = createAdminClient();

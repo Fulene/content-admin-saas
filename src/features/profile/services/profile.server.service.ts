@@ -11,6 +11,7 @@ const PROFILE_SELECT = [
   "first_name",
   "last_name",
   "avatar_url",
+  "global_role",
   "created_at",
   "updated_at",
 ].join(",");

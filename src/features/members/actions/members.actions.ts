@@ -15,6 +15,7 @@ import type {
   SiteInvitationCheck,
   SiteMember,
 } from "@/features/members/types/member";
+import { isGlobalAdminRole } from "@/features/profile/utils/global-role";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -47,6 +48,16 @@ export async function canManageSiteInvitationsAction({
 
   if (userError || !user) {
     return false;
+  }
+
+  const { data: profileData, error: profileError } = await supabase
+    .from("profiles")
+    .select("global_role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (!profileError && isGlobalAdminRole(profileData?.global_role)) {
+    return true;
   }
 
   const adminSupabase = createAdminClient();

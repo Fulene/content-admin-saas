@@ -1,3 +1,7 @@
+export const SITE_STATUS_VALUES = ["active", "disabled"] as const;
+
+export type SiteStatus = (typeof SITE_STATUS_VALUES)[number];
+
 export type Site = {
   id: string;
   name: string;
@@ -7,4 +11,9 @@ export type Site = {
     label: string;
   } | null;
   slug: string | null;
+  status: SiteStatus;
+};
+
+export type ManagedSite = Site & {
+  memberCount: number;
 };
