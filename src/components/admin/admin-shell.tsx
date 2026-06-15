@@ -52,6 +52,12 @@ const themeOptions = [
   { id: "forest", label: "Sapin" },
 ] satisfies Array<{ id: ThemeMode; label: string }>;
 
+const agencyLogoSources: Record<ThemeMode, string> = {
+  light: "/awone/logos/awone-logo-red.png",
+  dark: "/awone/logos/awone-logo-orange.png",
+  forest: "/awone/logos/awone-logo-green.png",
+};
+
 const profileSectionIds: AdminSectionId[] = [
   "profile-edit",
   "profile-security",
@@ -619,12 +625,15 @@ export function AdminShell({
       <div className="flex h-full flex-col bg-white dark:bg-[#141517]">
         <header className="flex h-18 shrink-0 items-center justify-between bg-white px-5 dark:bg-[#141517] lg:h-20 lg:px-8">
           <div className="flex min-w-0 items-center gap-24">
-            <div className="min-w-0">
-              <p className="text-base font-bold text-[#f44336] dark:text-[#ff8a3d] lg:text-lg">
+            <div className="flex min-w-0 flex-col items-start gap-1">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={agencyLogoSources[themeMode]}
+                alt="Awone"
+                className="h-auto w-34 object-contain"
+              />
+              <p className="text-xs font-bold leading-none text-stone-950 dark:text-white">
                 content-admin-saas
-              </p>
-              <p className="text-xs text-stone-500 dark:text-stone-300 lg:text-sm">
-                Backoffice
               </p>
             </div>
 
