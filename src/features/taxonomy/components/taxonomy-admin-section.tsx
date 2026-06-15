@@ -596,6 +596,8 @@ function TaxonomyFormDrawer({
   onSubmit: (name: string) => Promise<void>;
 }) {
   const [name, setName] = useState(initialName);
+  const [hasNameBlurred, setHasNameBlurred] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDrawerMounted, setIsDrawerMounted] = useState(isOpen);
   const [isClosing, setIsClosing] = useState(false);
@@ -606,6 +608,9 @@ function TaxonomyFormDrawer({
       : trimmedName.length < 2
         ? "2 caracteres minimum."
         : null;
+  const shouldShowNameError = Boolean(
+    nameError && (hasNameBlurred || hasSubmitted),
+  );
   const nameLabel = isCategories ? "Nom de la categorie" : "Nom du tag";
   const title =
     mode === "create"
@@ -621,6 +626,8 @@ function TaxonomyFormDrawer({
       setIsDrawerMounted(true);
       setIsClosing(false);
       setName(initialName);
+      setHasNameBlurred(false);
+      setHasSubmitted(false);
       setIsSubmitting(false);
       return;
     }
@@ -649,10 +656,14 @@ function TaxonomyFormDrawer({
 
     setIsDrawerMounted(false);
     setIsClosing(false);
+    setHasNameBlurred(false);
+    setHasSubmitted(false);
     setIsSubmitting(false);
   }
 
   async function handleSubmit() {
+    setHasSubmitted(true);
+
     if (nameError || isSubmitting) {
       return;
     }
@@ -722,19 +733,22 @@ function TaxonomyFormDrawer({
                   type="text"
                   value={name}
                   onChange={(event) => setName(event.target.value)}
+                  onBlur={() => setHasNameBlurred(true)}
                   placeholder={
                     isCategories ? "Nom de categorie" : "Nom du tag"
                   }
-                  aria-invalid={Boolean(nameError)}
-                  aria-describedby={nameError ? "taxonomy-name-error" : undefined}
+                  aria-invalid={shouldShowNameError}
+                  aria-describedby={
+                    shouldShowNameError ? "taxonomy-name-error" : undefined
+                  }
                   className={[
                     "h-11 rounded-md border bg-white px-3 text-sm text-stone-950 outline-none transition-colors placeholder:text-stone-400 dark:bg-[#111213] dark:text-white dark:placeholder:text-stone-500",
-                    nameError
+                    shouldShowNameError
                       ? "border-[#f44336] focus:border-[#f44336] dark:border-red-400 dark:focus:border-red-400"
                       : "border-stone-200 focus:border-stone-400 dark:border-[#2d2e30] dark:focus:border-[#ff8a3d]",
                   ].join(" ")}
                 />
-                {nameError ? (
+                {shouldShowNameError ? (
                   <span
                     id="taxonomy-name-error"
                     className="text-xs font-medium text-[#f44336] dark:text-red-300"

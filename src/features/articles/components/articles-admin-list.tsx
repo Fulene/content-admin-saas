@@ -56,6 +56,7 @@ type SortColumn =
   | "tags"
   | "status"
   | "published_at"
+  | "created_at"
   | "seo"
   | "image"
   | "updated_at";
@@ -97,7 +98,7 @@ export function ArticlesAdminList({
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<ArticleStatusFilter>("all");
   const [sortState, setSortState] = useState<SortState>({
-    column: "updated_at",
+    column: "created_at",
     direction: "desc",
   });
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
@@ -686,14 +687,14 @@ function ArticlesTable({
             <SortableTableHeader
               column="title"
               label="Titre"
-              className="w-[22%]"
+              className="w-[18%]"
               sortState={sortState}
               onSort={onSort}
             />
             <SortableTableHeader
               column="summary"
               label="Résumé"
-              className="w-[18%]"
+              className="w-[14%]"
               sortState={sortState}
               onSort={onSort}
             />
@@ -721,6 +722,13 @@ function ArticlesTable({
             <SortableTableHeader
               column="published_at"
               label="Publication"
+              className="w-[10%]"
+              sortState={sortState}
+              onSort={onSort}
+            />
+            <SortableTableHeader
+              column="created_at"
+              label="Creation"
               className="w-[10%]"
               sortState={sortState}
               onSort={onSort}
@@ -799,6 +807,7 @@ function ArticlesTable({
                 <td className="px-4 py-4">
                   {formatNullableDate(article.published_at)}
                 </td>
+                <td className="px-4 py-4">{formatDate(article.created_at)}</td>
                 <td className="px-4 py-4">
                   <SeoStatus article={article} />
                 </td>
@@ -1290,7 +1299,11 @@ function getSortableValue(
   categoryNameById: Map<string, string>,
   articleTagsById: Map<string, Tag[]>,
 ) {
-  if (column === "published_at" || column === "updated_at") {
+  if (
+    column === "published_at" ||
+    column === "created_at" ||
+    column === "updated_at"
+  ) {
     const value = article[column];
 
     return value ? new Date(value).getTime() : 0;

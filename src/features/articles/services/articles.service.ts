@@ -314,6 +314,7 @@ export async function updateArticleWithTags({
         .insert(
           tagIdsToAdd.map((tagId) => ({
             article_id: articleId,
+            site_id: siteId,
             tag_id: tagId,
           })),
         );

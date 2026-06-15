@@ -28,6 +28,7 @@ Le projet ne doit pas contenir de fonctionnalité métier tant que celle-ci n'es
 - Ne pas ajouter de page admin, page blog ou route métier sans demande explicite.
 - Ne pas ajouter de CRUD, formulaire métier, table SQL, migration SQL, mock ou fichier de démonstration.
 - Ne pas ajouter de tests tant que ce n'est pas demandé.
+- Ne jamais executer ESLint, un build, TypeScript (`tsc`) ou toute commande de verification assimilee sans demande explicite.
 - Ne pas configurer de lint automatique après génération de code.
 - Ne pas ajouter Husky, lint-staged, hooks Git ou pre-commit hooks.
 - Garder TypeScript en mode strict.

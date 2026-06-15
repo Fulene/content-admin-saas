@@ -22,7 +22,7 @@ import {
   articleCreateSchema,
   type ArticleCreateValues,
 } from "@/features/articles/schemas/article-create.schema";
-import { createArticleWithTags } from "@/features/articles/services/articles.service";
+import { createArticleAction } from "@/features/articles/actions/articles.actions";
 import {
   createCategory,
   getCategories,
@@ -263,28 +263,23 @@ export function ArticleCreateDrawer({
     try {
       const parsedValues = articleCreateSchema.parse(values);
 
-      await createArticleWithTags({
-        siteId: activeSiteId,
-        status,
-        categoryId: parsedValues.categoryId,
-        title: parsedValues.title,
-        slug: parsedValues.slug,
-        summary: parsedValues.summary,
-        content: parsedValues.content,
-        coverImageFile,
-        coverImageAlt: normalizeOptionalText(parsedValues.coverImageAlt),
-        metaTitle: normalizeOptionalText(parsedValues.metaTitle),
-        metaDescription: normalizeOptionalText(parsedValues.metaDescription),
-        tagIds: parsedValues.tagIds,
-      });
+      const result = await createArticleAction(
+        createArticleFormData({
+          coverImageFile,
+          siteId: activeSiteId,
+          status,
+          values: parsedValues,
+        }),
+      );
+
+      if (result.status === "error") {
+        throw new Error(result.text);
+      }
 
       setDrawerState("success");
       onArticleCreated({
         status: "success",
-        text:
-          status === "published"
-            ? "Article publié avec succès."
-            : "Brouillon créé avec succès.",
+        text: result.text,
       });
       onClose();
     } catch (error) {
@@ -722,12 +717,6 @@ function TextAreaField({
   );
 }
 
-function normalizeOptionalText(value: string | null) {
-  const normalizedValue = value?.trim();
-
-  return normalizedValue ? normalizedValue : null;
-}
-
 function slugify(value: string) {
   return value
     .normalize("NFD")
@@ -736,4 +725,36 @@ function slugify(value: string) {
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+function createArticleFormData({
+  coverImageFile,
+  siteId,
+  status,
+  values,
+}: {
+  coverImageFile: File | null;
+  siteId: string;
+  status: "draft" | "published";
+  values: ArticleCreateValues;
+}) {
+  const formData = new FormData();
+
+  formData.set("siteId", siteId);
+  formData.set("status", status);
+  formData.set("title", values.title);
+  formData.set("slug", values.slug);
+  formData.set("summary", values.summary);
+  formData.set("content", values.content);
+  formData.set("categoryId", values.categoryId ?? "");
+  formData.set("tagIds", JSON.stringify(values.tagIds));
+  formData.set("coverImageAlt", values.coverImageAlt ?? "");
+  formData.set("metaTitle", values.metaTitle ?? "");
+  formData.set("metaDescription", values.metaDescription ?? "");
+
+  if (coverImageFile) {
+    formData.set("coverImageFile", coverImageFile);
+  }
+
+  return formData;
 }
