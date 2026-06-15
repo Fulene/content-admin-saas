@@ -111,6 +111,25 @@
     color: var(--forest-accent) !important;
   }
 
+  .theme-forest .collapsed-sidebar-tooltip-label,
+  .theme-forest .collapsed-sidebar-tooltip-item {
+    color: #ffffff !important;
+  }
+
+  .theme-forest .collapsed-sidebar-tooltip-panel::before {
+    background-color: var(--forest-panel) !important;
+    border-color: var(--forest-border-strong) !important;
+  }
+
+  .theme-forest .collapsed-sidebar-tooltip-divider {
+    border-color: var(--forest-border-strong) !important;
+  }
+
+  .theme-forest .collapsed-sidebar-tooltip-label-active,
+  .theme-forest .collapsed-sidebar-tooltip-item-active {
+    color: var(--forest-accent) !important;
+  }
+
   .theme-forest [class*="bg-[#f44336]"],
   .theme-forest [class*="dark:bg-[#ff8a3d]"] {
     background-color: var(--forest-accent-strong) !important;

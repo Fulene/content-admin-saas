@@ -630,9 +630,9 @@ export function AdminShell({
               <img
                 src={agencyLogoSources[themeMode]}
                 alt="Awone"
-                className="h-auto w-34 object-contain"
+                className="h-auto w-24 object-contain sm:w-28 lg:w-34"
               />
-              <p className="text-xs font-bold leading-none text-stone-950 dark:text-white">
+              <p className="text-[10px] font-bold leading-none text-stone-950 dark:text-white sm:text-[11px] lg:text-xs">
                 content-admin-saas
               </p>
             </div>
@@ -852,7 +852,13 @@ export function AdminShell({
               onThemeChange={setThemeMode}
             />
 
-            <form action={logoutAction}>
+            <form
+              action={logoutAction}
+              className={[
+                "group relative",
+                isSidebarCollapsed ? "overflow-visible" : "overflow-hidden",
+              ].join(" ")}
+            >
               <button
                 type="submit"
                 className={[
@@ -874,6 +880,7 @@ export function AdminShell({
                   Logout
                 </span>
               </button>
+              {isSidebarCollapsed ? <CollapsedLogoutTooltip /> : null}
             </form>
           </div>
         </aside>
@@ -971,7 +978,7 @@ function ThemeSelector({
   return (
     <div
       className={[
-        "flex h-12 w-full items-center gap-4 overflow-visible rounded-md px-4",
+        "group relative flex h-12 w-full items-center gap-4 overflow-visible rounded-md px-4",
         className,
       ].join(" ")}
     >
@@ -996,6 +1003,66 @@ function ThemeSelector({
           value={themeMode}
           onChange={(value) => onThemeChange(value as ThemeMode)}
         />
+      </div>
+      {!isLabelVisible ? (
+        <CollapsedThemeSelector
+          themeMode={themeMode}
+          onThemeChange={onThemeChange}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function CollapsedThemeSelector({
+  themeMode,
+  onThemeChange,
+}: {
+  themeMode: ThemeMode;
+  onThemeChange: (themeMode: ThemeMode) => void;
+}) {
+  return (
+    <div className="pointer-events-none absolute bottom-0 left-[calc(100%+0.85rem)] z-50 translate-x-1 opacity-0 shadow-2xl transition-[opacity,transform] duration-150 ease-out before:absolute before:bottom-0 before:left-[-0.9rem] before:top-0 before:w-[0.9rem] before:content-[''] group-hover:pointer-events-auto group-hover:translate-x-0 group-hover:opacity-100">
+      <div className="collapsed-sidebar-tooltip-panel relative min-w-36 rounded-xl border border-[#f44336]/25 bg-white px-3.5 py-2 text-sm font-bold text-stone-950 shadow-[#7f1d16]/15 ring-1 ring-[#f44336]/10 before:absolute before:bottom-5 before:left-[-5px] before:h-2.5 before:w-2.5 before:rotate-45 before:border-b before:border-l before:border-[#f44336]/25 before:bg-white dark:border-[#ff8a3d]/35 dark:bg-[#141517] dark:text-stone-100 dark:shadow-black/45 dark:ring-[#ff8a3d]/10 dark:before:border-[#ff8a3d]/35 dark:before:bg-[#141517]">
+        <div className="collapsed-sidebar-tooltip-label flex min-h-7 w-full items-center justify-center whitespace-nowrap rounded-md text-center">
+          Theme
+        </div>
+        <div className="collapsed-sidebar-tooltip-divider mt-2 grid gap-1 border-t border-stone-200 pt-2 dark:border-[#5a342b]">
+          {themeOptions.map((option) => {
+            const isActive = option.id === themeMode;
+
+            return (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => onThemeChange(option.id)}
+                className={[
+                  "collapsed-sidebar-tooltip-item flex h-9 min-w-36 cursor-pointer items-center rounded-lg px-2.5 text-left text-xs font-semibold transition-colors",
+                  isActive
+                    ? "collapsed-sidebar-tooltip-item-active text-[#f44336] dark:text-[#ff8a3d]"
+                    : "text-stone-600 hover:text-[#f44336] dark:text-[#ffe7e2]/80 dark:hover:text-[#ff8a3d]",
+                ].join(" ")}
+              >
+                <span className="whitespace-nowrap">{option.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CollapsedLogoutTooltip() {
+  return (
+    <div className="pointer-events-none absolute bottom-0 left-[calc(100%+0.85rem)] z-50 translate-x-1 opacity-0 shadow-2xl transition-[opacity,transform] duration-150 ease-out before:absolute before:bottom-0 before:left-[-0.9rem] before:top-0 before:w-[0.9rem] before:content-[''] group-hover:pointer-events-auto group-hover:translate-x-0 group-hover:opacity-100">
+      <div className="collapsed-sidebar-tooltip-panel relative min-w-36 rounded-xl border border-[#f44336]/25 bg-white px-3.5 py-2 text-sm font-bold text-stone-950 shadow-[#7f1d16]/15 ring-1 ring-[#f44336]/10 before:absolute before:bottom-5 before:left-[-5px] before:h-2.5 before:w-2.5 before:rotate-45 before:border-b before:border-l before:border-[#f44336]/25 before:bg-white dark:border-[#ff8a3d]/35 dark:bg-[#141517] dark:text-stone-100 dark:shadow-black/45 dark:ring-[#ff8a3d]/10 dark:before:border-[#ff8a3d]/35 dark:before:bg-[#141517]">
+        <button
+          type="submit"
+          className="collapsed-sidebar-tooltip-label flex min-h-7 w-full cursor-pointer items-center justify-center whitespace-nowrap rounded-md text-center transition-colors hover:text-[#f44336] dark:hover:text-[#ff8a3d]"
+        >
+          Logout
+        </button>
       </div>
     </div>
   );
@@ -1213,15 +1280,17 @@ function CollapsedSidebarTooltip({
     >
       <div
         className={[
-          "relative min-w-36 rounded-xl border border-[#f44336]/25 bg-white px-3.5 py-2 text-sm font-bold text-stone-950 shadow-[#7f1d16]/15 ring-1 ring-[#f44336]/10 before:absolute before:left-[-5px] before:h-2.5 before:w-2.5 before:-translate-y-1/2 before:rotate-45 before:border-b before:border-l before:border-[#f44336]/25 before:bg-white dark:border-[#ff8a3d]/35 dark:bg-[#141517] dark:text-stone-100 dark:shadow-black/45 dark:ring-[#ff8a3d]/10 dark:before:border-[#ff8a3d]/35 dark:before:bg-[#141517]",
+          "collapsed-sidebar-tooltip-panel relative min-w-36 rounded-xl border border-[#f44336]/25 bg-white px-3.5 py-2 text-sm font-bold text-stone-950 shadow-[#7f1d16]/15 ring-1 ring-[#f44336]/10 before:absolute before:left-[-5px] before:h-2.5 before:w-2.5 before:-translate-y-1/2 before:rotate-45 before:border-b before:border-l before:border-[#f44336]/25 before:bg-white dark:border-[#ff8a3d]/35 dark:bg-[#141517] dark:text-stone-100 dark:shadow-black/45 dark:ring-[#ff8a3d]/10 dark:before:border-[#ff8a3d]/35 dark:before:bg-[#141517]",
           hasItems ? "before:top-6" : "before:top-1/2",
         ].join(" ")}
       >
         {hasItems ? (
           <div
             className={[
-              "flex min-h-7 w-full items-center justify-center whitespace-nowrap rounded-md text-center",
-              isActive ? "text-[#f44336] dark:text-[#ff8a3d]" : "",
+              "collapsed-sidebar-tooltip-label flex min-h-7 w-full items-center justify-center whitespace-nowrap rounded-md text-center",
+              isActive
+                ? "collapsed-sidebar-tooltip-label-active text-[#f44336] dark:text-[#ff8a3d]"
+                : "",
             ].join(" ")}
           >
             {label}
@@ -1231,15 +1300,17 @@ function CollapsedSidebarTooltip({
             type="button"
             onClick={onClick}
             className={[
-              "flex min-h-7 w-full cursor-pointer items-center justify-center whitespace-nowrap rounded-md text-center transition-colors hover:text-[#f44336] dark:hover:text-[#ff8a3d]",
-              isActive ? "text-[#f44336] dark:text-[#ff8a3d]" : "",
+              "collapsed-sidebar-tooltip-label flex min-h-7 w-full cursor-pointer items-center justify-center whitespace-nowrap rounded-md text-center transition-colors hover:text-[#f44336] dark:hover:text-[#ff8a3d]",
+              isActive
+                ? "collapsed-sidebar-tooltip-label-active text-[#f44336] dark:text-[#ff8a3d]"
+                : "",
             ].join(" ")}
           >
             {label}
           </button>
         )}
         {hasItems ? (
-          <div className="mt-2 grid gap-1 border-t border-stone-200 pt-2 dark:border-[#5a342b]">
+          <div className="collapsed-sidebar-tooltip-divider mt-2 grid gap-1 border-t border-stone-200 pt-2 dark:border-[#5a342b]">
             {items?.map((item) => {
               const ItemIcon = item.icon;
 
@@ -1249,9 +1320,9 @@ function CollapsedSidebarTooltip({
                   type="button"
                   onClick={item.onClick}
                   className={[
-                    "flex h-9 min-w-48 cursor-pointer items-center gap-2 rounded-lg px-2.5 text-left text-xs font-semibold transition-colors",
+                    "collapsed-sidebar-tooltip-item flex h-9 min-w-48 cursor-pointer items-center gap-2 rounded-lg px-2.5 text-left text-xs font-semibold transition-colors",
                     item.isActive
-                      ? "text-[#f44336] dark:text-[#ff8a3d]"
+                      ? "collapsed-sidebar-tooltip-item-active text-[#f44336] dark:text-[#ff8a3d]"
                       : "text-stone-600 hover:text-[#f44336] dark:text-[#ffe7e2]/80 dark:hover:text-[#ff8a3d]",
                   ].join(" ")}
                 >

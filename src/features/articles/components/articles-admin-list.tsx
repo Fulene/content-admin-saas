@@ -785,9 +785,7 @@ function ArticlesTable({
                   </button>
                 </td>
                 <td className="px-4 py-4">
-                  <p className="line-clamp-2 text-sm text-stone-600 dark:text-stone-300">
-                    {article.summary}
-                  </p>
+                  <SummaryTooltip summary={article.summary} />
                 </td>
                 <td className="px-4 py-4">
                   <EmptyValueFallback
@@ -1033,6 +1031,71 @@ function SeoBadge({
               }}
             >
               {tooltip}
+            </span>,
+            document.body,
+          )
+        : null}
+    </>
+  );
+}
+
+function SummaryTooltip({ summary }: { summary: string }) {
+  const summaryRef = useRef<HTMLParagraphElement | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState<{
+    left: number;
+    top: number;
+  } | null>(null);
+
+  function showTooltip() {
+    const summaryElement = summaryRef.current;
+
+    if (!summaryElement) {
+      return;
+    }
+
+    if (summaryElement.scrollHeight <= summaryElement.clientHeight) {
+      return;
+    }
+
+    const summaryRect = summaryElement.getBoundingClientRect();
+    const tooltipWidth = 384;
+    const viewportPadding = 12;
+    const left = Math.min(
+      Math.max(
+        summaryRect.left + summaryRect.width / 2,
+        viewportPadding + tooltipWidth / 2,
+      ),
+      window.innerWidth - viewportPadding - tooltipWidth / 2,
+    );
+
+    setTooltipPosition({
+      left,
+      top: summaryRect.top - 8,
+    });
+  }
+
+  return (
+    <>
+      <p
+        ref={summaryRef}
+        onMouseEnter={showTooltip}
+        onMouseLeave={() => setTooltipPosition(null)}
+        className="line-clamp-2 text-sm text-stone-600 dark:text-stone-300"
+      >
+        {summary}
+      </p>
+
+      {tooltipPosition
+        ? createPortal(
+            <span
+              className="pointer-events-none fixed z-[10001] max-w-80 rounded-lg border border-[#ffb199]/50 bg-[#2a1815] px-3 py-2 text-xs font-semibold text-[#ffe7e2] shadow-2xl shadow-black/30"
+              style={{
+                left: tooltipPosition.left,
+                top: tooltipPosition.top,
+                transform: "translate(-50%, -100%)",
+              }}
+            >
+              {summary}
             </span>,
             document.body,
           )
