@@ -36,7 +36,7 @@ export async function loginAction(
   }
 
   revalidatePath("/admin");
-  redirect("/admin");
+  redirect("/select-site?choose=1");
 }
 
 export async function logoutAction() {

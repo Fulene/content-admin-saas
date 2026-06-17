@@ -1,6 +1,7 @@
 ﻿"use server";
 
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import {
   acceptSiteInvitation,
   cancelSiteInvitation,
@@ -385,6 +386,23 @@ export async function signInForInvitationAction({
           : "Impossible d'accepter l'invitation.",
     };
   }
+}
+
+export async function logoutForInvitationAction({
+  token,
+}: {
+  token: string;
+}) {
+  const supabase = await createClient();
+
+  await supabase.auth.signOut();
+
+  redirect(
+    createInvitationUrl({
+      origin: await getRequestOrigin(),
+      token,
+    }),
+  );
 }
 
 async function getRequestOrigin() {

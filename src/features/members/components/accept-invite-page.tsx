@@ -2,16 +2,19 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { AppLogo } from "@/components/branding/app-logo";
 import {
   CheckCircle2,
   Eye,
   EyeOff,
   Loader2,
+  LogOut,
   LogIn,
   UserPlus,
 } from "lucide-react";
 import {
   acceptSiteInvitationAction,
+  logoutForInvitationAction,
   signInForInvitationAction,
   signUpForInvitationAction,
   type MemberActionResult,
@@ -66,6 +69,8 @@ export function AcceptInvitePage({
     displayInvitationCheck.reason === "success" && !acceptedInvitation;
   const shouldShowAuthForm =
     displayInvitationCheck.reason === "not_authenticated";
+  const shouldShowWrongAccountAction =
+    displayInvitationCheck.reason === "wrong_email";
 
   function submitAuth() {
     if (!canSubmit || isPending) {
@@ -116,12 +121,13 @@ export function AcceptInvitePage({
     <main className="flex h-dvh overflow-y-auto bg-[#090b0b] px-5 py-8 text-stone-50 sm:py-10">
       <section className="mx-auto my-auto w-full max-w-lg">
         <div className="mb-5">
-          <p className="text-base font-bold text-[#ff8a3d]">
-            content-admin-saas
-          </p>
+          <AppLogo
+            nameClassName="text-[9px] font-bold leading-none text-white sm:text-[10px] lg:text-[11px]"
+            themeMode="dark"
+          />
           {!shouldShowAuthForm ? (
             <>
-              <h1 className="mt-2 text-2xl font-bold text-white">{title}</h1>
+              <h1 className="mt-5 text-2xl font-bold text-white">{title}</h1>
               {!isAccepted ? (
                 <p className="mt-2 text-sm text-stone-300">
                   {description.prefix}
@@ -171,7 +177,7 @@ export function AcceptInvitePage({
                       : "text-stone-400 hover:text-white",
                   ].join(" ")}
                 >
-                  Creer un compte
+                  Créer un compte
                 </button>
                 <button
                   type="button"
@@ -183,7 +189,7 @@ export function AcceptInvitePage({
                       : "text-stone-400 hover:text-white",
                   ].join(" ")}
                 >
-                  J'ai deja un compte
+                  J'ai déjà un compte
                 </button>
               </div>
 
@@ -230,11 +236,23 @@ export function AcceptInvitePage({
                   <LogIn className="h-4 w-4" aria-hidden="true" />
                 )}
                 {mode === "signup"
-                  ? "Creer mon compte"
+                  ? "Créer mon compte"
                   : "Me connecter et accepter"}
               </button>
               </form>
             </div>
+          ) : null}
+
+          {shouldShowWrongAccountAction ? (
+            <form action={logoutForInvitationAction.bind(null, { token })}>
+              <button
+                type="submit"
+                className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-md bg-[#ff8a3d] px-4 text-sm font-semibold text-[#111213] transition-colors hover:bg-[#ff7a1f]"
+              >
+                <LogOut className="h-4 w-4" aria-hidden="true" />
+                Se déconnecter puis réessayer
+              </button>
+            </form>
           ) : null}
 
           {isReadyToAccept ? (
@@ -272,7 +290,7 @@ export function AcceptInvitePage({
               onClick={() => router.push("/admin")}
               className="mt-4 inline-flex h-11 w-full cursor-pointer items-center justify-center rounded-md bg-[#ff8a3d] px-4 text-sm font-semibold text-[#111213] transition-colors hover:bg-[#ff7a1f]"
             >
-              Aller a l'administration
+              Aller à l'administration
             </button>
           ) : null}
         </div>
@@ -349,7 +367,7 @@ function InviteAuthFields({
           </button>
         </div>
         <p className="mt-2 text-xs text-stone-500">
-          8 caracteres minimum, une majuscule, un chiffre et un symbole.
+          8 caractères minimum, une majuscule, un chiffre et un symbole.
         </p>
       </label>
 
@@ -425,7 +443,7 @@ function getInvitationTitle(check: SiteInvitationCheck, isAccepted = false) {
   const siteName = check.invitation?.sites?.name ?? "ce site";
 
   if (isAccepted) {
-    return `Invitation acceptee`;
+    return `Invitation acceptée`;
   }
 
   if (check.reason === "success") {
@@ -434,6 +452,10 @@ function getInvitationTitle(check: SiteInvitationCheck, isAccepted = false) {
 
   if (check.reason === "not_authenticated") {
     return "Rejoindre un site";
+  }
+
+  if (check.reason === "wrong_email") {
+    return "Tu sembles déjà connecté avec un autre compte";
   }
 
   return "Invitation indisponible";
@@ -448,7 +470,7 @@ function getInvitationDescription(check: SiteInvitationCheck): {
     const siteName = check.invitation?.sites?.name ?? "ce site";
 
     return {
-      prefix: "Tu es invite a rejoindre l'administration du site ",
+      prefix: "Tu es invité à rejoindre l'administration du site ",
       siteName,
       suffix: ".",
     };
@@ -457,7 +479,7 @@ function getInvitationDescription(check: SiteInvitationCheck): {
   if (check.reason === "not_authenticated") {
     return {
       prefix:
-        "Cree ton compte ou connecte-toi avec l'email invite pour accepter l'invitation.",
+        "Crée ton compte ou connecte-toi avec l'email invité pour accepter l'invitation.",
       siteName: null,
       suffix: "",
     };
@@ -465,7 +487,8 @@ function getInvitationDescription(check: SiteInvitationCheck): {
 
   if (check.reason === "wrong_email") {
     return {
-      prefix: "Le compte connecte ne correspond pas a l'email invite.",
+      prefix:
+        "Pour accepter cette invitation, déconnecte-toi de ton compte actuel puis réessaie.",
       siteName: null,
       suffix: "",
     };
@@ -474,7 +497,7 @@ function getInvitationDescription(check: SiteInvitationCheck): {
   if (check.reason === "expired") {
     return {
       prefix:
-        "Cette invitation a expire. Demande un nouveau lien a l'administrateur.",
+        "Cette invitation a expiré. Demande un nouveau lien à l'administrateur.",
       siteName: null,
       suffix: "",
     };
@@ -482,7 +505,7 @@ function getInvitationDescription(check: SiteInvitationCheck): {
 
   if (check.reason === "status_mismatch") {
     return {
-      prefix: "Cette invitation a deja ete utilisee ou annulee.",
+      prefix: "Cette invitation a déjà été utilisée ou annulée.",
       siteName: null,
       suffix: "",
     };
@@ -500,7 +523,7 @@ function validateInvitationPassword(
   passwordConfirmation: string,
 ): string[] {
   if (password.length < 8) {
-    return ["8 caracteres minimum."];
+    return ["8 caractères minimum."];
   }
 
   if (!/[A-Z]/.test(password)) {

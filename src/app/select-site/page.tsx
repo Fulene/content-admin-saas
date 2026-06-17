@@ -5,10 +5,17 @@ import { getAccessibleSitesForCurrentUser } from "@/features/sites/services/site
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
-  title: "Selection du site - content-admin-saas",
+  title: "Sélection du site - content-admin-saas",
 };
 
-export default async function SelectSitePage() {
+export default async function SelectSitePage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    choose?: string;
+  }>;
+}) {
+  const { choose } = await searchParams;
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
 
@@ -22,5 +29,11 @@ export default async function SelectSitePage() {
     redirect("/admin");
   }
 
-  return <SiteSelectionPage sites={sites} userId={data.claims.sub} />;
+  return (
+    <SiteSelectionPage
+      shouldUseStoredSite={choose !== "1"}
+      sites={sites}
+      userId={data.claims.sub}
+    />
+  );
 }

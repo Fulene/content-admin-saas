@@ -28,13 +28,15 @@ Le projet ne doit pas contenir de fonctionnalité métier tant que celle-ci n'es
 - Ne pas ajouter de page admin, page blog ou route métier sans demande explicite.
 - Ne pas ajouter de CRUD, formulaire métier, table SQL, migration SQL, mock ou fichier de démonstration.
 - Ne pas ajouter de tests tant que ce n'est pas demandé.
-- Ne jamais executer ESLint, un build, TypeScript (`tsc`) ou toute commande de verification assimilee sans demande explicite.
+- Ne jamais exécuter ESLint, un build, TypeScript (`tsc`) ou toute commande de vérification assimilée sans demande explicite.
 - Ne pas configurer de lint automatique après génération de code.
 - Ne pas ajouter Husky, lint-staged, hooks Git ou pre-commit hooks.
 - Garder TypeScript en mode strict.
 - Utiliser l'alias `@/*` pour les imports depuis `src/`.
-- Limiter les recherches larges ou couteuses pour eviter de bloquer la conversation ou IntelliJ par manque de RAM.
-- Si une recherche devient trop longue ou trop large, l'arreter et demander des precisions avant de continuer.
+- Préserver les accents dans tous les textes visibles en français, notamment sur les landing pages, l'administration et les pages de compte.
+- Vérifier que les fichiers modifiés restent encodés en UTF-8 et ne pas introduire de texte mojibake (`Ã©`, `Ã¨`, `Ã `, etc.).
+- Limiter les recherches larges ou coûteuses pour éviter de bloquer la conversation ou IntelliJ par manque de RAM.
+- Si une recherche devient trop longue ou trop large, l'arrêter et demander des précisions avant de continuer.
 - Après plusieurs tentatives de correction ou une phase de debug, nettoyer le code avant de terminer : supprimer les marqueurs temporaires, scripts de diagnostic, fichiers de capture, logs et changements générés sans lien direct avec la correction finale.
 
 ## Séparation `app` / `features`

@@ -21,6 +21,7 @@ import {
   Users,
   X,
 } from "lucide-react";
+import { AppLogo, type ThemeMode } from "@/components/branding/app-logo";
 import { SelectDropdown } from "@/components/forms/select-dropdown";
 import { logoutAction } from "@/features/auth/actions/auth.actions";
 import { ArticlesAdminList } from "@/features/articles/components/articles-admin-list";
@@ -43,20 +44,12 @@ type AdminSectionId =
   | "sites-management"
   | "profile-edit"
   | "profile-security";
-type ThemeMode = "light" | "dark" | "forest";
-
 const ACTIVE_SITE_STORAGE_PREFIX = "content-admin-saas-active-site";
 const themeOptions = [
   { id: "light", label: "Clair" },
   { id: "dark", label: "Sombre" },
   { id: "forest", label: "Sapin" },
 ] satisfies Array<{ id: ThemeMode; label: string }>;
-
-const agencyLogoSources: Record<ThemeMode, string> = {
-  light: "/awone/logos/awone-logo-red.png",
-  dark: "/awone/logos/awone-logo-orange.png",
-  forest: "/awone/logos/awone-logo-green.png",
-};
 
 const profileSectionIds: AdminSectionId[] = [
   "profile-edit",
@@ -280,17 +273,6 @@ export function AdminShell({
     const storedSite = sites.find((site) => site.id === storedSiteId);
 
     if (!storedSite) {
-      if (isGlobalAdmin) {
-        const [firstSite] = sites;
-        window.localStorage.setItem(activeSiteStorageKey, firstSite.id);
-        setActiveSite(firstSite);
-        setCanManageInvitations(true);
-        setCanManageContent(true);
-        setAreSitePermissionsLoaded(true);
-        setIsSiteReady(true);
-        return;
-      }
-
       window.localStorage.removeItem(activeSiteStorageKey);
       router.replace("/select-site");
       return;
@@ -613,7 +595,7 @@ export function AdminShell({
   }
 
   if (sites.length === 0 && !isGlobalAdmin) {
-    return <NoSitesState />;
+    return <NoSitesState themeMode={themeMode} />;
   }
 
   if (!activeSite && !isGlobalAdmin) {
@@ -625,17 +607,7 @@ export function AdminShell({
       <div className="flex h-full flex-col bg-white dark:bg-[#141517]">
         <header className="flex h-18 shrink-0 items-center justify-between bg-white px-5 dark:bg-[#141517] lg:h-20 lg:px-8">
           <div className="flex min-w-0 items-center gap-24">
-            <div className="flex min-w-0 flex-col items-start gap-1">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={agencyLogoSources[themeMode]}
-                alt="Awone"
-                className="h-auto w-24 object-contain sm:w-28 lg:w-34"
-              />
-              <p className="text-[10px] font-bold leading-none text-stone-950 dark:text-white sm:text-[11px] lg:text-xs">
-                content-admin-saas
-              </p>
-            </div>
+            <AppLogo themeMode={themeMode} />
 
             <button
               type="button"
@@ -1112,14 +1084,12 @@ function SiteLoadingState() {
   );
 }
 
-function NoSitesState() {
+function NoSitesState({ themeMode }: { themeMode: ThemeMode }) {
   return (
     <main className="flex min-h-screen items-center justify-center bg-stone-50 px-5 py-10 text-stone-950 dark:bg-[#090b0b] dark:text-stone-50">
       <section className="w-full max-w-md rounded-lg border border-stone-200 bg-white p-6 text-center shadow-sm dark:border-[#2d2e30] dark:bg-[#141517]">
-        <p className="text-base font-bold text-[#f44336] dark:text-[#ff8a3d]">
-          content-admin-saas
-        </p>
-        <h1 className="mt-3 text-2xl font-bold">Aucun site disponible</h1>
+        <AppLogo className="items-center" themeMode={themeMode} />
+        <h1 className="mt-5 text-2xl font-bold">Aucun site disponible</h1>
         <p className="mt-3 text-sm text-stone-500 dark:text-stone-300">
           Votre compte ne dispose actuellement d'aucun site administrable.
         </p>
@@ -1136,7 +1106,7 @@ function NoActiveSiteState() {
           Aucun site actif
         </p>
         <p className="mt-2 max-w-md text-sm text-stone-500 dark:text-stone-400">
-          Ouvrez un site depuis la section Sites pour acceder a son contenu.
+          Ouvrez un site depuis la section Sites pour accéder à son contenu.
         </p>
       </div>
     </div>
