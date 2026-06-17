@@ -19,26 +19,16 @@ type SiteMemberRow = {
   sites: Omit<Site, "currentUserRole"> | Omit<Site, "currentUserRole">[] | null;
 };
 
-export async function getAccessibleSitesForCurrentUser(): Promise<Site[]> {
+export async function getAccessibleSitesForCurrentUser(
+  userId: string,
+): Promise<Site[]> {
   try {
     const supabase = await createClient();
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError) {
-      throw new Error(userError.message);
-    }
-
-    if (!user) {
-      throw new Error("Utilisateur non authentifie.");
-    }
 
     const { data: profileData, error: profileError } = await supabase
       .from("profiles")
       .select("global_role")
-      .eq("id", user.id)
+      .eq("id", userId)
       .maybeSingle();
 
     if (profileError) {

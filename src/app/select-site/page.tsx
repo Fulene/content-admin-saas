@@ -8,6 +8,8 @@ export const metadata: Metadata = {
   title: "Sélection du site - content-admin-saas",
 };
 
+const selectSiteLoginRedirect = "/login?redirectedFrom=%2Fselect-site";
+
 export default async function SelectSitePage({
   searchParams,
 }: {
@@ -17,13 +19,25 @@ export default async function SelectSitePage({
 }) {
   const { choose } = await searchParams;
   const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
 
-  if (!data?.claims?.sub) {
-    redirect("/login");
+  if (error) {
+    if (error.message !== "Auth session missing!") {
+      console.error("Unexpected auth error on /select-site.", error);
+    }
+
+    redirect(selectSiteLoginRedirect);
   }
 
-  const sites = await getAccessibleSitesForCurrentUser();
+  if (!user) {
+    redirect(selectSiteLoginRedirect);
+  }
+
+  const userId = user.id;
+  const sites = await getAccessibleSitesForCurrentUser(userId);
 
   if (sites.length === 1) {
     redirect("/admin");
@@ -33,7 +47,7 @@ export default async function SelectSitePage({
     <SiteSelectionPage
       shouldUseStoredSite={choose !== "1"}
       sites={sites}
-      userId={data.claims.sub}
+      userId={userId}
     />
   );
 }

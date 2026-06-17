@@ -4,25 +4,40 @@ import { getProfileByUserId } from "@/features/profile/services/profile.server.s
 import { getAccessibleSitesForCurrentUser } from "@/features/sites/services/sites.server.service";
 import { createClient } from "@/lib/supabase/server";
 
+const adminLoginRedirect = "/login?redirectedFrom=%2Fadmin";
+
 export default async function AdminPage() {
   const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
 
-  if (!data?.claims?.sub) {
-    redirect("/login");
+  if (error) {
+    if (error.message !== "Auth session missing!") {
+      console.error("Unexpected auth error on /admin.", error);
+    }
+
+    redirect(adminLoginRedirect);
   }
 
+  if (!user) {
+    redirect(adminLoginRedirect);
+  }
+
+  const userId = user.id;
+
   const [initialProfile, initialSites] = await Promise.all([
-    getProfileByUserId(data.claims.sub),
-    getAccessibleSitesForCurrentUser(),
+    getProfileByUserId(userId),
+    getAccessibleSitesForCurrentUser(userId),
   ]);
 
   return (
     <AdminShell
       initialProfile={initialProfile}
       initialSites={initialSites}
-      userEmail={data.claims.email ?? "admin"}
-      userId={data.claims.sub}
+      userEmail={user.email ?? "admin"}
+      userId={userId}
     />
   );
 }

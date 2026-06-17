@@ -53,9 +53,9 @@ export function SiteSelectionPage({
 
   if (sites.length === 0) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-stone-50 px-5 py-10 text-stone-950 dark:bg-[#090b0b] dark:text-stone-50">
+      <main className="dark flex min-h-screen items-center justify-center bg-stone-50 px-5 py-10 text-stone-950 dark:bg-[#090b0b] dark:text-stone-50">
         <section className="w-full max-w-md rounded-lg border border-stone-200 bg-white p-6 text-center shadow-sm dark:border-[#2d2e30] dark:bg-[#141517]">
-          <AppLogo className="items-center" />
+          <AppLogo className="items-center" themeMode="dark" />
           <h1 className="mt-5 text-2xl font-bold">Aucun site disponible</h1>
           <p className="mt-3 text-sm text-stone-500 dark:text-stone-300">
             Votre compte ne dispose actuellement d'aucun site administrable.
@@ -67,9 +67,9 @@ export function SiteSelectionPage({
 
   if (isCheckingStoredSite) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-stone-50 px-5 py-10 text-stone-950 dark:bg-[#090b0b] dark:text-stone-50">
+      <main className="dark flex min-h-screen items-center justify-center bg-stone-50 px-5 py-10 text-stone-950 dark:bg-[#090b0b] dark:text-stone-50">
         <section className="w-full max-w-md rounded-lg border border-stone-200 bg-white p-6 text-center shadow-sm dark:border-[#2d2e30] dark:bg-[#141517]">
-          <AppLogo className="items-center" />
+          <AppLogo className="items-center" themeMode="dark" />
           <p className="mt-5 text-sm font-medium text-stone-500 dark:text-stone-300">
             Chargement du dernier site visité...
           </p>
@@ -79,10 +79,10 @@ export function SiteSelectionPage({
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-stone-50 px-5 py-10 text-stone-950 dark:bg-[#090b0b] dark:text-stone-50">
+    <main className="dark flex min-h-screen items-center justify-center bg-stone-50 px-5 py-10 text-stone-950 dark:bg-[#090b0b] dark:text-stone-50">
       <section className="w-full max-w-xl">
         <div className="mb-6">
-          <AppLogo />
+          <AppLogo themeMode="dark" />
           <h1 className="mt-5 text-2xl font-bold">Choisir un site</h1>
           <p className="mt-2 text-sm text-stone-500 dark:text-stone-300">
             Sélectionnez le site à administrer pour cette session.
